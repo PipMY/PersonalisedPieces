@@ -33,16 +33,15 @@ const routes = {
       .then(html => {
         content.innerHTML = html;
       })
-      .catch(error => console.error('Error loading about page:', error));
+      .catch(error => console.error('Error loading contact page:', error));
   },
   gallery: () => {
     fetch('gallery.html')
       .then(response => response.text())
       .then(html => {
         content.innerHTML = html;
-        
       })
-      .catch(error => console.error('Error loading about page:', error));
+      .catch(error => console.error('Error loading gallery page:', error));
   },
   shop: () => {
     fetch('shop.html')
@@ -50,15 +49,30 @@ const routes = {
       .then(html => {
         content.innerHTML = html;
         loadProducts();
-        setupAddProductForm();  // Initialize the form
       })
-      .catch(error => console.error('Error loading about page:', error));
+      .catch(error => console.error('Error loading shop page:', error));
   },
 };
 
 function navigate(route) {
-  window.history.pushState({}, route, `#${route}`);
-  routes[route]();
+  content.classList.add('fade-out');
+  setTimeout(() => {
+    window.history.pushState({}, route, `#${route}`);
+    routes[route]();
+    setActiveLink(route);
+    content.classList.remove('fade-out');
+  }, 200); // Match the duration of the CSS transition
+}
+
+function setActiveLink(route) {
+  const links = document.querySelectorAll('header li a');
+  links.forEach(link => {
+    if (link.id === `${route}-link`) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
 }
 
 // Link Click Event Handlers
@@ -92,10 +106,6 @@ document.getElementById('shop-link').addEventListener('click', (e) => {
   navigate('shop');
 });
 
-function navigate(route) {
-  window.history.pushState({}, route, `#${route}`);
-  routes[route]();
-}
 // Load Products from the server
 function loadProducts() {
   const productsContainer = document.getElementById('products');
@@ -108,7 +118,7 @@ function loadProducts() {
       productsContainer.innerHTML = products
         .map(
           (product) =>
-            `<div class="product">
+            `<div class="product-card">
               <h3>${product.name}</h3>
               <p>£${product.price}</p>
               <button onclick="addToCart(${product.id})">Add to Cart</button>
@@ -181,13 +191,12 @@ function setupAddProductForm() {
 window.addEventListener('popstate', () => {
   const route = location.hash.replace('#', '') || 'home';
   routes[route]();
+  setActiveLink(route);
 });
 
-if (location.hash) {
-  routes[location.hash.replace('#', '')]();
-} else {
-  routes.home();
-}
+const initialRoute = location.hash.replace('#', '') || 'home';
+routes[initialRoute]();
+setActiveLink(initialRoute);
 
 if (location.hash.includes('cart')) {
   loadCart();

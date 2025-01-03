@@ -20,16 +20,15 @@ a {
 /* Primary Style
 --------------------------------*/
 .main {
-  max-width: 110rem;
-  margin: 0 auto;
   padding: 0 2rem;
 }
 header {
   line-height: 12rem;
   height: 12rem;
+  padding-bottom: 14rem;
 }
 header h1 {
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-family: 'Oswald', sans-serif;
 }
 header ul::after {
@@ -51,21 +50,58 @@ header li a {
   font-size: 1.2rem;
   letter-spacing: 2px;
 }
-.text {
-  font-size: 2rem;
-  padding: 2rem 0;
-  -moz-columns: 3;
-  -webkit-columns: 3;
-  columns: 3;
-  column-gap: 2rem; /* Add gap between columns */
-}
 ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
+.text {
+  font-size: 20px;
+}
+
+.product-card {
+  border: 2px solid #ccc;
+  padding: 1rem;
+  margin: 1rem;
+  text-align: center;
+  flex: 1 1 calc(33.333% - 2rem); /* Adjust the width and margin */
+  box-sizing: border-box;
+}
+
+.products {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.product-card h3 {
+  margin: 0.5rem 0;
+}
+
+.product-card p {
+  margin: 0.5rem 0;
+}
+
+.product-card button {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.product-card button:hover {
+  background-color: #0056b3;
+}
 
 /* Add this to your existing CSS */
-header li a.active {
-  color: grey;
+.content {
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.content.fade-out {
+  opacity: 0;
 }
