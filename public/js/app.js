@@ -3,22 +3,56 @@ const content = document.getElementById('content');
 
 const routes = {
   home: () => {
-    content.innerHTML = `
-      <h1>Welcome to Our Shop</h1>
-      <div id="products"></div>
-      <h2>Add a Product</h2>
-      <form id="add-product-form">
-        <input type="text" id="product-name" placeholder="Product Name" required />
-        <input type="number" id="product-price" placeholder="Product Price" required />
-        <button type="submit">Add Product</button>
-      </form>
-    `;
-    loadProducts();
-    setupAddProductForm();  // Initialize the form
+    fetch('home.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+      })
+      .catch(error => console.error('Error loading home page:', error));
   },
   cart: () => {
-    content.innerHTML = `<h1>Your Cart</h1><div id="cart-items"></div>`;
-    loadCart();
+    fetch('cart.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        loadCart();
+      })
+      .catch(error => console.error('Error loading cart page:', error));
+  },
+  about: () => {
+    fetch('about.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+      })
+      .catch(error => console.error('Error loading about page:', error));
+  },
+  contact: () => {
+    fetch('contact.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+      })
+      .catch(error => console.error('Error loading about page:', error));
+  },
+  gallery: () => {
+    fetch('gallery.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        
+      })
+      .catch(error => console.error('Error loading about page:', error));
+  },
+  shop: () => {
+    fetch('shop.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        loadProducts();
+        setupAddProductForm();  // Initialize the form
+      })
+      .catch(error => console.error('Error loading about page:', error));
   },
 };
 
@@ -38,6 +72,30 @@ document.getElementById('cart-link').addEventListener('click', (e) => {
   navigate('cart');
 });
 
+document.getElementById('about-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  navigate('about');
+});
+
+document.getElementById('contact-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  navigate('contact');
+});
+
+document.getElementById('gallery-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  navigate('gallery');
+});
+
+document.getElementById('shop-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  navigate('shop');
+});
+
+function navigate(route) {
+  window.history.pushState({}, route, `#${route}`);
+  routes[route]();
+}
 // Load Products from the server
 function loadProducts() {
   const productsContainer = document.getElementById('products');
@@ -52,7 +110,7 @@ function loadProducts() {
           (product) =>
             `<div class="product">
               <h3>${product.name}</h3>
-              <p>$${product.price}</p>
+              <p>£${product.price}</p>
               <button onclick="addToCart(${product.id})">Add to Cart</button>
             </div>`
         )
@@ -61,22 +119,6 @@ function loadProducts() {
     .catch((error) => {
       console.error('Error fetching products:', error);
       productsContainer.innerHTML = 'Failed to load products.';
-    });
-}
-
-// Cart Handling
-let cart = [];
-
-function addToCart(productId) {
-  fetch(`http://localhost:3000/api/products/${productId}`)
-    .then((response) => response.json())
-    .then((product) => {
-      cart.push(product);
-      saveCart();
-      alert(`${product.name} added to cart.`);
-    })
-    .catch((error) => {
-      console.error('Error adding to cart:', error);
     });
 }
 
@@ -96,7 +138,7 @@ function updateCart() {
     .map(
       (item) =>
         `<div class="cart-item">
-          <p>${item.name} - $${item.price}</p>
+          <p>${item.name} - £${item.price}</p>
         </div>`
     )
     .join('');

@@ -1,30 +1,71 @@
+* {
+  box-sizing: border-box;
+}
+html {
+  font-size: -moz-calc(4px + 0.45vw);
+  font-size: -webkit-calc(4px + 0.45vw);
+  font-size: calc(4px + 0.45vw);
+}
 body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-  }
-  
-  nav {
-    background: #333;
-    color: white;
-    padding: 10px;
-  }
-  
-  nav ul {
-    list-style-type: none;
-  }
-  
-  nav ul li {
-    display: inline;
-    margin-right: 20px;
-  }
-  
-  nav ul li a {
-    color: white;
-    text-decoration: none;
-  }
-  
-  #content {
-    padding: 20px;
-  }
-  
+  font-family: 'Montserrat', sans-serif;
+  color: #000;
+}
+a {
+  text-decoration: none;
+  color: #000;
+}
+*:focus {
+  outline: 0;
+}
+/* Primary Style
+--------------------------------*/
+.main {
+  max-width: 110rem;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+header {
+  line-height: 12rem;
+  height: 12rem;
+}
+header h1 {
+  font-size: 2.5rem;
+  font-family: 'Oswald', sans-serif;
+}
+header ul::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+header li {
+  float: left;
+  width: 12.5%;
+  text-align: center;
+  text-transform: uppercase;
+}
+header li:nth-child(4) {
+  width: 25%;
+}
+header li a {
+  font-weight: 900;
+  font-size: 1.2rem;
+  letter-spacing: 2px;
+}
+.text {
+  font-size: 2rem;
+  padding: 2rem 0;
+  -moz-columns: 3;
+  -webkit-columns: 3;
+  columns: 3;
+  column-gap: 2rem; /* Add gap between columns */
+}
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Add this to your existing CSS */
+header li a.active {
+  color: grey;
+}
