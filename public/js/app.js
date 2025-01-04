@@ -52,6 +52,15 @@ const routes = {
       })
       .catch(error => console.error('Error loading shop page:', error));
   },
+  admin: () => {
+    fetch('admin.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        loadAdminScript();
+      })
+      .catch(error => console.error('Error loading admin page:', error));
+  },
 };
 
 function navigate(route) {
@@ -104,6 +113,11 @@ document.getElementById('gallery-link').addEventListener('click', (e) => {
 document.getElementById('shop-link').addEventListener('click', (e) => {
   e.preventDefault();
   navigate('shop');
+});
+
+document.getElementById('admin-link').addEventListener('click', (e) => {
+  e.preventDefault();
+  navigate('admin');
 });
 
 // Load Products from the server
@@ -185,6 +199,14 @@ function setupAddProductForm() {
         console.error('Error adding product:', error);
       });
   });
+}
+
+// Function to dynamically load the admin.js script
+function loadAdminScript() {
+  const script = document.createElement('script');
+  script.src = 'js/admin.js';
+  script.onload = () => console.log('admin.js loaded');
+  document.body.appendChild(script);
 }
 
 // Initialize App
