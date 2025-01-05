@@ -13,14 +13,25 @@
     <input type="password" id="admin-password" placeholder="Password" required />
     <button type="submit">Login</button>
   </form>
+
   <div id="admin-content" style="display: none;">
     <h2>Add a Product</h2>
     <form id="add-product-form">
       <input type="text" id="product-name" placeholder="Product Name" required />
       <input type="number" id="product-price" placeholder="Product Price" required />
+      <input type="number" step="0.1" id="product-rating" placeholder="Product Rating (1-5)" required />
+
+      <!-- Drag and Drop Area -->
+      <div id="image-drop-area" class="drop-area">
+        <p>Drag and drop an image here, or click to select a file.</p>
+        <input type="file" id="image-file-input" accept="image/*" style="display: none;" />
+      </div>
+      <img id="image-preview" src="" alt="Image Preview" style="display: none; max-width: 200px; margin-top: 10px;" />
+
       <button type="submit">Add Product</button>
     </form>
   </div>
+
   <script src="js/admin.js"></script>
 </body>
 </html>

@@ -1,19 +1,62 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const port = 3000;
 
 // Middleware to parse JSON body in POST requests
 app.use(express.json());
-
-// Serve static files (e.g., HTML, CSS, JavaScript) from the public directory
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/assets/images', express.static(path.join(__dirname, 'assets/images')));  // Serve image directory
+
+// Ensure 'temp' and 'assets/images' directories exist
+const tempDir = path.join(__dirname, 'temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir);
+}
+
+const imagesDir = path.join(__dirname, 'assets/images');
+if (!fs.existsSync(imagesDir)) {
+  fs.mkdirSync(imagesDir, { recursive: true });
+}
+
+// Set up multer for handling file uploads
+const upload = multer({
+  dest: tempDir, // Temporary storage
+});
+
+// Handle image upload
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    console.error('No file uploaded');
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const tempPath = req.file.path;
+  const targetPath = path.join(__dirname, 'assets/images', req.file.originalname);
+
+  // Move the file to the assets/images directory
+  fs.rename(tempPath, targetPath, (err) => {
+    if (err) {
+      console.error('Failed to save image:', err);
+      return res.status(500).json({ error: 'Failed to save image' });
+    }
+
+    console.log('Image uploaded successfully:', targetPath);
+    res.json({ filePath: `/assets/images/${req.file.originalname}` });
+  });
+});
 
 // Endpoint to get all products
 app.get('/api/products', (req, res) => {
-  fs.readFile(path.join(__dirname, 'products.json'), 'utf-8', (err, data) => {
+  const productsFilePath = path.join(__dirname, 'products.json');
+  if (!fs.existsSync(productsFilePath)) {
+    fs.writeFileSync(productsFilePath, JSON.stringify([])); // Create an empty array if the file doesn't exist
+  }
+
+  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
     if (err) {
       res.status(500).json({ error: 'Failed to read products data' });
     } else {
@@ -22,30 +65,25 @@ app.get('/api/products', (req, res) => {
   });
 });
 
-// Endpoint to get a single product by ID
-app.get('/api/products/:id', (req, res) => {
-  const productId = parseInt(req.params.id, 10);
-  fs.readFile(path.join(__dirname, 'products.json'), 'utf-8', (err, data) => {
-    if (err) {
-      res.status(500).json({ error: 'Failed to read products data' });
-    } else {
-      const products = JSON.parse(data);
-      const product = products.find(p => p.id === productId);
-      if (product) {
-        res.json(product);  // Send the product data as JSON
-      } else {
-        res.status(404).json({ error: 'Product not found' });
-      }
-    }
-  });
-});
+// Validation function for new product
+function validateProduct(product) {
+  const { name, price, rating, image } = product;
+  if (!name || typeof name !== 'string') return 'Invalid product name';
+  if (!price || typeof price !== 'number' || price <= 0) return 'Invalid product price';
+  if (!rating || typeof rating !== 'number' || rating < 0 || rating > 5) return 'Invalid product rating';
+  return null;
+}
 
 // Endpoint to add a new product
 app.post('/api/products', (req, res) => {
-  const newProduct = req.body;  // Get the new product data from the request body
+  const newProduct = req.body;
+  const error = validateProduct(newProduct);
+  if (error) {
+    return res.status(400).json({ error });
+  }
 
-  // Read the current products from the JSON file
-  fs.readFile(path.join(__dirname, 'products.json'), 'utf-8', (err, data) => {
+  const productsFilePath = path.join(__dirname, 'products.json');
+  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
     if (err) {
       res.status(500).json({ error: 'Failed to read products data' });
     } else {
@@ -59,7 +97,7 @@ app.post('/api/products', (req, res) => {
       products.push(addedProduct);
 
       // Write the updated products array to the JSON file
-      fs.writeFile(path.join(__dirname, 'products.json'), JSON.stringify(products, null, 2), (err) => {
+      fs.writeFile(productsFilePath, JSON.stringify(products, null, 2), (err) => {
         if (err) {
           res.status(500).json({ error: 'Failed to save product' });
         } else {

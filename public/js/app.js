@@ -125,28 +125,28 @@ function loadProducts() {
   const productsContainer = document.getElementById('products');
 
   // Fetch products data from the server
-  fetch('http://localhost:3000/api/products')  // Replace with your server URL if needed
+  fetch('http://localhost:3000/api/products') // Replace with your server URL if needed
     .then((response) => response.json())
     .then((products) => {
       // Display products on the page
       productsContainer.innerHTML = products
         .map(
-          (product) =>
-            `<div class="product-card">
-      <img src="../assets/images/kunai.jpg" alt="Product Image" class="product-image" />
-      <div class="product-info">
-        <h4 class="brand"></h4>
-        <h3 class="product-title">${product.name}</h3>
-        <div class="rating">
-          <span>⭐⭐⭐⭐⭐</span>
-        </div>
-        <p class="price">£${product.price}</p>
-      </div>
-      <button class="add-to-cart" onclick="addToCart(${product.id})">
-        <img src="../assets/images/basket3.svg" alt="Cart Icon" />
-      </button>
-    </div>
-            `
+          (product) => `
+            <div class="product-card">
+              <img src="${product.image}" alt="${product.name}" class="product-image" />
+              <div class="product-info">
+                <h4 class="brand">Brand Name</h4>
+                <h3 class="product-title">${product.name}</h3>
+                <div class="rating">
+                  ${generateStars(product.rating)} ${product.rating.toFixed(1)}
+                </div>
+                <p class="price">£${product.price.toFixed(2)}</p>
+              </div>
+              <button class="add-to-cart" onclick="addToCart(${product.id})">
+                <img src="../assets/images/basket3.svg" alt="Cart Icon" />
+              </button>
+            </div>
+          `
         )
         .join('');
     })
@@ -155,6 +155,31 @@ function loadProducts() {
       productsContainer.innerHTML = 'Failed to load products.';
     });
 }
+
+// Helper function to generate stars based on the rating
+function generateStars(rating) {
+  const fullStarURL = "../assets/images/star-fill.svg"; // URL for full star
+  const halfStarURL = "../assets/images/star-half.svg"; // URL for half star
+  const emptyStarURL = "../assets/images/star.svg"; // URL for empty star (if needed)
+
+  const fullStars = Math.floor(rating); // Number of full stars
+  const halfStar = rating % 1 >= 0.5; // Check if there's a half star
+  const emptyStars = 5 - fullStars - (halfStar ? 1 : 0); // Remaining empty stars
+
+  const fullStarHTML = `<img src="${fullStarURL}" alt="Full Star" class="star-icon" />`;
+  const halfStarHTML = halfStar
+    ? `<img src="${halfStarURL}" alt="Half Star" class="star-icon" />`
+    : "";
+  const emptyStarHTML = `<img src="${emptyStarURL}" alt="Empty Star" class="star-icon empty" />`;
+
+  return (
+    fullStarHTML.repeat(fullStars) +
+    halfStarHTML +
+    emptyStarHTML.repeat(emptyStars)
+  );
+}
+
+
 
 function addToCart(productId) {
   fetch(`http://localhost:3000/api/products/${productId}`)
@@ -228,7 +253,6 @@ function setupAddProductForm() {
 function loadAdminScript() {
   const script = document.createElement('script');
   script.src = 'js/admin.js';
-  script.onload = () => console.log('admin.js loaded');
   document.body.appendChild(script);
 }
 
