@@ -133,16 +133,39 @@ function loadProducts() {
         .map(
           (product) =>
             `<div class="product-card">
-              <h3>${product.name}</h3>
-              <p>£${product.price}</p>
-              <button onclick="addToCart(${product.id})">Add to Cart</button>
-            </div>`
+      <img src="../assets/images/kunai.jpg" alt="Product Image" class="product-image" />
+      <div class="product-info">
+        <h4 class="brand"></h4>
+        <h3 class="product-title">${product.name}</h3>
+        <div class="rating">
+          <span>⭐⭐⭐⭐⭐</span>
+        </div>
+        <p class="price">£${product.price}</p>
+      </div>
+      <button class="add-to-cart" onclick="addToCart(${product.id})">
+        <img src="../assets/images/basket3.svg" alt="Cart Icon" />
+      </button>
+    </div>
+            `
         )
         .join('');
     })
     .catch((error) => {
       console.error('Error fetching products:', error);
       productsContainer.innerHTML = 'Failed to load products.';
+    });
+}
+
+function addToCart(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}`)
+    .then((response) => response.json())
+    .then((product) => {
+      cart.push(product);
+      saveCart();
+      alert(`${product.name} added to cart.`);
+    })
+    .catch((error) => {
+      console.error('Error adding to cart:', error);
     });
 }
 
