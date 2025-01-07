@@ -45,6 +45,11 @@ window.onload = async () => {
 };
 
 const updateUI = async () => {
+  if (!auth0Client) {
+    console.error("auth0Client is not initialized");
+    return;
+  }
+
   const isAuthenticated = await auth0Client.isAuthenticated();
 
   document.getElementById("btn-logout").disabled = !isAuthenticated;
@@ -70,8 +75,31 @@ const updateUI = async () => {
 
     document.getElementById("ipt-access-token").innerHTML = await auth0Client.getTokenSilently();
     document.getElementById("ipt-user-profile").textContent = JSON.stringify(user, null, 2);
+
+    // Change login button to logout button and display profile picture
+    const loginLink = document.getElementById('login-link');
+    loginLink.textContent = 'Logout';
+    loginLink.removeEventListener('click', loginEventHandler);
+    loginLink.addEventListener('click', logoutEventHandler);
+
+    const profilePicture = document.createElement('img');
+    profilePicture.src = user.picture;
+    profilePicture.alt = 'Profile Picture';
+    profilePicture.classList.add('profile-picture');
+    loginLink.parentNode.insertBefore(profilePicture, loginLink.nextSibling);
   } else {
     document.getElementById("gated-content").classList.add("hidden");
+
+    // Change logout button to login button and remove profile picture
+    const loginLink = document.getElementById('login-link');
+    loginLink.textContent = 'Login';
+    loginLink.removeEventListener('click', logoutEventHandler);
+    loginLink.addEventListener('click', loginEventHandler);
+
+    const profilePicture = document.querySelector('.profile-picture');
+    if (profilePicture) {
+      profilePicture.remove();
+    }
   }
 };
 
@@ -211,10 +239,17 @@ document.getElementById('shop-link').addEventListener('click', (e) => {
   navigate('shop');
 });
 
-document.getElementById('login-link').addEventListener('click', (e) => {
+const loginEventHandler = (e) => {
   e.preventDefault();
   login();
-});
+};
+
+const logoutEventHandler = (e) => {
+  e.preventDefault();
+  logout();
+};
+
+document.getElementById('login-link').addEventListener('click', loginEventHandler);
 
 // Load Products from the server
 function loadProducts() {
