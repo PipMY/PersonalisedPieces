@@ -2,6 +2,8 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const Stripe = require('stripe');
+const stripe = Stripe("sk_test_51QdtFwRuJ1XrmYECPnWcFE5pryjFJaOpCmTIEwYSs2d6xlA1NVXq18DIUZTik4sGHcb3PddUJ5HRtIRHjtYFTEmS00EI0weuxC")
 
 const app = express();
 const port = 3000;
@@ -11,6 +13,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/assets/images', express.static(path.join(__dirname, 'assets/images')));  // Serve image directory
+
+// Serve the main HTML file
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Serve the admin HTML file
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 
 // Endpoint to serve the configuration file
 app.get("/auth_config.json", (req, res) => {
@@ -45,7 +57,7 @@ const upload = multer({
   }
 });
 
-// Handle image upload
+// Allows for the image to be uploaded and saved to the server
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     console.error('No file uploaded');
@@ -67,7 +79,7 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   });
 });
 
-// Endpoint to get all products
+// Endpoint to get all products (for the store page)
 app.get('/api/products', (req, res) => {
   const productsFilePath = path.join(__dirname, 'products.json');
   if (!fs.existsSync(productsFilePath)) {
@@ -79,6 +91,30 @@ app.get('/api/products', (req, res) => {
       res.status(500).json({ error: 'Failed to read products data' });
     } else {
       res.json(JSON.parse(data));  // Send products data as JSON
+    }
+  });
+});
+
+// Get endpoint for a single product (for when you are adding to the basket) returns 404 if it cannot be found
+app.get('/api/products/:id', (req, res) => {
+  const productsFilePath = path.join(__dirname, 'products.json');
+  if (!fs.existsSync(productsFilePath)) {
+    return res.status(404).json({ error: 'Products file not found' });
+  }
+
+  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to read products data' });
+    }
+
+    const products = JSON.parse(data);
+    const productId = parseInt(req.params.id, 10);
+    const product = products.find(p => p.id === productId);
+
+    if (product) {
+      res.json(product);
+    } else {
+      res.status(404).json({ error: 'Product not found' });
     }
   });
 });
@@ -125,6 +161,23 @@ app.post('/api/products', (req, res) => {
       });
     }
   });
+});
+
+app.post('/create-payment-intent', async (req, res) => {
+  try {
+    const { amount, currency } = req.body;
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount, // Amount in cents (e.g., 5000 for $50.00)
+      currency, // e.g., 'usd', 'eur'
+    });
+
+    res.send({
+      clientSecret: paymentIntent.client_secret,
+    });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
 });
 
 // Start the server

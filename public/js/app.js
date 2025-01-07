@@ -1,12 +1,11 @@
 const app = document.getElementById('app');
 const content = document.getElementById('content');
 
-let auth0Client = null;
 
-// ..
+let auth0Client = null;
+let cart = [];
 
 const fetchAuthConfig = () => fetch("/auth_config.json");
-// ..
 
 const configureClient = async () => {
   const response = await fetchAuthConfig();
@@ -44,6 +43,12 @@ window.onload = async () => {
   }
 };
 
+
+
+
+
+
+
 const updateUI = async () => {
   if (!auth0Client) {
     console.error("auth0Client is not initialized");
@@ -56,25 +61,18 @@ const updateUI = async () => {
   document.getElementById("btn-login").disabled = isAuthenticated;
 
   if (isAuthenticated) {
-    document.getElementById("gated-content").classList.remove("hidden");
-
     const user = await auth0Client.getUser();
-    console.log("User object:", user); // Debugging
 
     // Access roles from the custom claim
     const namespace = 'https://personalisedpieces.co.uk/'; // Ensure this matches your Action namespace
     const roles = user[`${namespace}roles`] || [];
-    console.log("User roles:", roles); // Debugging
 
     // Display roles or navigate based on roles
     if (roles.includes("Admin")) {
       navigate("admin");
     } else {
-      console.log("User does not have admin role.");
+      navigate("home");
     }
-
-    document.getElementById("ipt-access-token").innerHTML = await auth0Client.getTokenSilently();
-    document.getElementById("ipt-user-profile").textContent = JSON.stringify(user, null, 2);
 
     // Change login button to logout button and display profile picture
     const loginLink = document.getElementById('login-link');
@@ -83,13 +81,12 @@ const updateUI = async () => {
     loginLink.addEventListener('click', logoutEventHandler);
 
     const profilePicture = document.createElement('img');
+    profilePicture.classList.add('profile-picture');
     profilePicture.src = user.picture;
-    profilePicture.alt = 'Profile Picture';
+    profilePicture.alt = 'img';
     profilePicture.classList.add('profile-picture');
     loginLink.parentNode.insertBefore(profilePicture, loginLink.nextSibling);
   } else {
-    document.getElementById("gated-content").classList.add("hidden");
-
     // Change logout button to login button and remove profile picture
     const loginLink = document.getElementById('login-link');
     loginLink.textContent = 'Login';
@@ -339,13 +336,40 @@ function updateCart() {
   const cartItems = document.getElementById('cart-items');
   cartItems.innerHTML = cart
     .map(
-      (item) =>
-        `<div class="cart-item">
-          <p>${item.name} - £${item.price}</p>
-        </div>`
+      (item) => `
+        <div class="cart-item">
+          <img src="${item.image}" alt="${item.name}" class="cart-item-image" />
+          <div class="cart-item-details">
+            <p class="cart-item-name">${item.name}</p>
+            <p class="cart-item-quantity">Quantity: ${item.quantity}</p>
+            <p class="cart-item-price">£${item.price.toFixed(2)}</p>
+          </div>
+          <button class="remove-item" onclick="removeFromCart(${item.id})">×</button>
+        </div>
+      `
     )
     .join('');
+
+  const buyButton = document.createElement('button');
+  buyButton.textContent = 'Buy';
+  buyButton.classList.add('buy-button');
+  buyButton.addEventListener('click', buyItems);
+  cartItems.appendChild(buyButton);
 }
+
+function removeFromCart(productId) {
+  cart = cart.filter(item => item.id !== productId);
+  saveCart();
+  updateCart();
+}
+
+function buyItems() {
+  alert('Thank you for your purchase!');
+  cart = [];
+  saveCart();
+  updateCart();
+}
+
 // Function to dynamically load the admin.js script
 function loadAdminScript() {
   const script = document.createElement('script');
