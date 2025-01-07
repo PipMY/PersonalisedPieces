@@ -364,10 +364,9 @@ function removeFromCart(productId) {
 }
 
 function buyItems() {
-  alert('Thank you for your purchase!');
-  cart = [];
-  saveCart();
-  updateCart();
+  // Save cart items to localStorage before redirecting to checkout
+  localStorage.setItem('checkoutItems', JSON.stringify(cart));
+  window.location.href = 'checkout.html';
 }
 
 // Function to dynamically load the admin.js script

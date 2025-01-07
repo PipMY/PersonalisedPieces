@@ -2,8 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-const Stripe = require('stripe');
-const stripe = Stripe("sk_test_51QdtFwRuJ1XrmYECPnWcFE5pryjFJaOpCmTIEwYSs2d6xlA1NVXq18DIUZTik4sGHcb3PddUJ5HRtIRHjtYFTEmS00EI0weuxC")
+const stripe = require("stripe")('sk_test_51QdtFwRuJ1XrmYECPnWcFE5pryjFJaOpCmTIEwYSs2d6xlA1NVXq18DIUZTik4sGHcb3PddUJ5HRtIRHjtYFTEmS00EI0weuxC');
 
 const app = express();
 const port = 3000;
@@ -11,6 +10,34 @@ const port = 3000;
 // Middleware to parse JSON body in POST requests
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const calculateOrderAmount = (items) => {
+  // Calculate the order total on the server to prevent
+  // people from directly manipulating the amount on the client
+  let total = 0;
+  items.forEach((item) => {
+    total += Math.round(item.amount * 100); // Ensure amount is in cents and rounded to an integer
+  });
+  return total;
+};
+
+app.post("/create-payment-intent", async (req, res) => {
+  const { items } = req.body;
+
+  // Create a PaymentIntent with the order amount and currency
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: calculateOrderAmount(items),
+    currency: "gbp",
+    // In the latest version of the API, specifying the `automatic_payment_methods` parameter is optional because Stripe enables its functionality by default.
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  res.send({
+    clientSecret: paymentIntent.client_secret,
+  });
+});
 
 app.use('/assets/images', express.static(path.join(__dirname, 'assets/images')));  // Serve image directory
 
@@ -22,6 +49,11 @@ app.get('/', (req, res) => {
 // Serve the admin HTML file
 app.get('/admin', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
+// Serve the checkout HTML file
+app.get('/checkout', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'checkout.html'));
 });
 
 // Endpoint to serve the configuration file
@@ -161,23 +193,6 @@ app.post('/api/products', (req, res) => {
       });
     }
   });
-});
-
-app.post('/create-payment-intent', async (req, res) => {
-  try {
-    const { amount, currency } = req.body;
-
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount, // Amount in cents (e.g., 5000 for $50.00)
-      currency, // e.g., 'usd', 'eur'
-    });
-
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
-  } catch (error) {
-    res.status(500).send({ error: error.message });
-  }
 });
 
 // Start the server
