@@ -9,7 +9,18 @@ const port = 3000;
 // Middleware to parse JSON body in POST requests
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
 app.use('/assets/images', express.static(path.join(__dirname, 'assets/images')));  // Serve image directory
+
+// Endpoint to serve the configuration file
+app.get("/auth_config.json", (req, res) => {
+  const configPath = path.join(__dirname, "auth_config.json");
+  if (fs.existsSync(configPath)) {
+    res.sendFile(configPath);
+  } else {
+    res.status(404).json({ error: 'Configuration file not found' });
+  }
+});
 
 // Ensure 'temp' and 'assets/images' directories exist
 const tempDir = path.join(__dirname, 'temp');
@@ -25,6 +36,13 @@ if (!fs.existsSync(imagesDir)) {
 // Set up multer for handling file uploads
 const upload = multer({
   dest: tempDir, // Temporary storage
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
 });
 
 // Handle image upload
@@ -71,6 +89,7 @@ function validateProduct(product) {
   if (!name || typeof name !== 'string') return 'Invalid product name';
   if (!price || typeof price !== 'number' || price <= 0) return 'Invalid product price';
   if (!rating || typeof rating !== 'number' || rating < 0 || rating > 5) return 'Invalid product rating';
+  if (!image || typeof image !== 'string') return 'Invalid product image';
   return null;
 }
 

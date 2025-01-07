@@ -1,6 +1,95 @@
 const app = document.getElementById('app');
 const content = document.getElementById('content');
 
+let auth0Client = null;
+
+// ..
+
+const fetchAuthConfig = () => fetch("/auth_config.json");
+// ..
+
+const configureClient = async () => {
+  const response = await fetchAuthConfig();
+  const config = await response.json();
+
+  auth0Client = await auth0.createAuth0Client({
+    domain: config.domain,
+    clientId: config.clientId
+  });
+};
+
+window.onload = async () => {
+  await configureClient(); // Ensure auth0Client is initialized
+
+  updateUI();
+
+  const isAuthenticated = await auth0Client.isAuthenticated();
+
+  if (isAuthenticated) {
+    // show the gated content
+    return;
+  }
+
+  // NEW - check for the code and state parameters
+  const query = window.location.search;
+  if (query.includes("code=") && query.includes("state=")) {
+
+    // Process the login state
+    await auth0Client.handleRedirectCallback();
+    
+    updateUI();
+
+    // Use replaceState to redirect the user away and remove the querystring parameters
+    window.history.replaceState({}, document.title, "/");
+  }
+};
+
+const updateUI = async () => {
+  const isAuthenticated = await auth0Client.isAuthenticated();
+
+  document.getElementById("btn-logout").disabled = !isAuthenticated;
+  document.getElementById("btn-login").disabled = isAuthenticated;
+
+  if (isAuthenticated) {
+    document.getElementById("gated-content").classList.remove("hidden");
+
+    const user = await auth0Client.getUser();
+    console.log("User object:", user); // Debugging
+
+    // Access roles from the custom claim
+    const namespace = 'https://personalisedpieces.co.uk/'; // Ensure this matches your Action namespace
+    const roles = user[`${namespace}roles`] || [];
+    console.log("User roles:", roles); // Debugging
+
+    // Display roles or navigate based on roles
+    if (roles.includes("Admin")) {
+      navigate("admin");
+    } else {
+      console.log("User does not have admin role.");
+    }
+
+    document.getElementById("ipt-access-token").innerHTML = await auth0Client.getTokenSilently();
+    document.getElementById("ipt-user-profile").textContent = JSON.stringify(user, null, 2);
+  } else {
+    document.getElementById("gated-content").classList.add("hidden");
+  }
+};
+
+const login = async () => {
+  await auth0Client.loginWithRedirect({
+    authorizationParams: {
+      redirect_uri: window.location.origin
+    }
+  });
+};
+
+const logout = () => {
+  auth0Client.logout({
+    logoutParams: {
+      returnTo: window.location.origin
+    }
+  });
+};
 const routes = {
   home: () => {
     fetch('home.html')
@@ -35,14 +124,6 @@ const routes = {
       })
       .catch(error => console.error('Error loading contact page:', error));
   },
-  gallery: () => {
-    fetch('gallery.html')
-      .then(response => response.text())
-      .then(html => {
-        content.innerHTML = html;
-      })
-      .catch(error => console.error('Error loading gallery page:', error));
-  },
   shop: () => {
     fetch('shop.html')
       .then(response => response.text())
@@ -65,7 +146,26 @@ const routes = {
 
 function navigate(route) {
   content.classList.add('fade-out');
-  setTimeout(() => {
+  setTimeout(async () => {
+    if (route === "admin") {
+      // Check if the user is authenticated and has the Admin role
+      const isAuthenticated = await auth0Client.isAuthenticated();
+      if (!isAuthenticated) {
+        alert("You must be logged in to access the admin page.");
+        navigate("home"); // Redirect to home if not authenticated
+        return;
+      }
+
+      const user = await auth0Client.getUser();
+      const namespace = 'https://personalisedpieces.co.uk/'; // Ensure this matches your Action namespace
+      const roles = user[`${namespace}roles`] || [];
+      if (!roles.includes("Admin")) {
+        alert("You do not have permission to access the admin page.");
+        navigate("home"); // Redirect to home if not authorized
+        return;
+      }
+    }
+
     window.history.pushState({}, route, `#${route}`);
     routes[route]();
     setActiveLink(route);
@@ -73,13 +173,14 @@ function navigate(route) {
   }, 200); // Match the duration of the CSS transition
 }
 
+
 function setActiveLink(route) {
   const links = document.querySelectorAll('header li a');
   links.forEach(link => {
     if (link.id === `${route}-link`) {
-      link.classList.add('active');
+      link.classList.add('active', 'disabled-link');
     } else {
-      link.classList.remove('active');
+      link.classList.remove('active', 'disabled-link');
     }
   });
 }
@@ -105,19 +206,14 @@ document.getElementById('contact-link').addEventListener('click', (e) => {
   navigate('contact');
 });
 
-document.getElementById('gallery-link').addEventListener('click', (e) => {
-  e.preventDefault();
-  navigate('gallery');
-});
-
 document.getElementById('shop-link').addEventListener('click', (e) => {
   e.preventDefault();
   navigate('shop');
 });
 
-document.getElementById('admin-link').addEventListener('click', (e) => {
+document.getElementById('login-link').addEventListener('click', (e) => {
   e.preventDefault();
-  navigate('admin');
+  login();
 });
 
 // Load Products from the server
@@ -215,40 +311,6 @@ function updateCart() {
     )
     .join('');
 }
-
-// Setup Add Product Form
-function setupAddProductForm() {
-  const form = document.getElementById('add-product-form');
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const productName = document.getElementById('product-name').value;
-    const productPrice = document.getElementById('product-price').value;
-    
-    const newProduct = {
-      name: productName,
-      price: parseFloat(productPrice),
-    };
-
-    // Send POST request to add the product
-    fetch('http://localhost:3000/api/products', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newProduct),
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        alert(`Product ${data.name} added!`);
-        loadProducts();  // Reload products after adding the new one
-      })
-      .catch((error) => {
-        console.error('Error adding product:', error);
-      });
-  });
-}
-
 // Function to dynamically load the admin.js script
 function loadAdminScript() {
   const script = document.createElement('script');
@@ -256,12 +318,60 @@ function loadAdminScript() {
   document.body.appendChild(script);
 }
 
-// Initialize App
-window.addEventListener('popstate', () => {
+window.addEventListener('popstate', async () => {
   const route = location.hash.replace('#', '') || 'home';
+
+  if (route === "admin") {
+    const isAuthenticated = await auth0Client.isAuthenticated();
+    if (!isAuthenticated) {
+      alert("You must be logged in to access the admin page.");
+      navigate("home");
+      return;
+    }
+
+    const user = await auth0Client.getUser();
+    const namespace = 'https://personalisedpieces.co.uk/';
+    const roles = user[`${namespace}roles`] || [];
+    if (!roles.includes("Admin")) {
+      alert("You do not have permission to access the admin page.");
+      navigate("home");
+      return;
+    }
+  }
+
   routes[route]();
   setActiveLink(route);
 });
+
+// Handle initial route
+(async () => {
+  const initialRoute = location.hash.replace('#', '') || 'home';
+
+  if (initialRoute === "admin") {
+    const isAuthenticated = await auth0Client.isAuthenticated();
+    if (!isAuthenticated) {
+      alert("You must be logged in to access the admin page.");
+      navigate("home");
+      return;
+    }
+
+    const user = await auth0Client.getUser();
+    const namespace = 'https://personalisedpieces.co.uk/';
+    const roles = user[`${namespace}roles`] || [];
+    if (!roles.includes("Admin")) {
+      alert("You do not have permission to access the admin page.");
+      navigate("home");
+      return;
+    }
+  }
+
+  routes[initialRoute]();
+  setActiveLink(initialRoute);
+
+  if (initialRoute === "cart") {
+    loadCart();
+  }
+})();
 
 const initialRoute = location.hash.replace('#', '') || 'home';
 routes[initialRoute]();

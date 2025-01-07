@@ -37,6 +37,15 @@ a {
   
 }
 
+.hidden {
+  display: none;
+}
+
+label {
+  margin-bottom: 10px;
+  display: block;
+}
+
 .content.fade-out {
   opacity: 0;
 }
@@ -181,4 +190,10 @@ ul {
   display: block;
   margin-top: 10px;
   max-height: 150px;
+}
+
+/* Disabled Link Style */
+.disabled-link {
+  pointer-events: none;
+  color: grey;
 }

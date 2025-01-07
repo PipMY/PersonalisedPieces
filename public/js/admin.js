@@ -1,18 +1,5 @@
 console.log("admin.js loaded");
 
-document.getElementById('admin-login-form').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const username = document.getElementById('admin-username').value;
-  const password = document.getElementById('admin-password').value;
-
-  if (username === 'admin' && password === 'password') {
-      document.getElementById('admin-login-form').style.display = 'none';
-      document.getElementById('admin-content').style.display = 'block';
-  } else {
-      alert('Invalid credentials');
-  }
-});
-
 const dropArea = document.getElementById("image-drop-area");
 const fileInput = document.getElementById("image-file-input");
 const previewImage = document.getElementById("image-preview");
