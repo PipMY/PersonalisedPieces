@@ -2,36 +2,15 @@
   {
     "id": 1,
     "name": "Kunai",
-    "price": 15.99,
+    "price": 8,
     "rating": 4.4,
-    "image": "/assets/images/kunai.jpg"
+    "image": "http://localhost:3000/assets/images/kunai.jpg"
   },
   {
     "id": 2,
     "name": "Shuriken",
-    "price": 12.99,
-    "rating": 3.8,
-    "image": "/assets/images/shuriken.jpg"
-  },
-  {
-    "id": 3,
-    "name": "Katana",
-    "price": 99.99,
-    "rating": 5,
-    "image": "/assets/images/katana.jpg"
-  },
-  {
-    "id": 4,
-    "name": "Interstellar",
-    "price": 21,
-    "rating": 4.6,
-    "image": "/assets/images/interstellar.jpg"
-  },
-  {
-    "id": 5,
-    "name": "dognado",
-    "price": 100,
-    "rating": 5,
-    "image": "/assets/images/Screenshot 2025-01-02 162200.png"
+    "price": 4,
+    "rating": 1.4,
+    "image": "http://localhost:3000/assets/images/shuriken.jpg"
   }
 ]

@@ -254,3 +254,51 @@ ul {
   top: -3px; /* Adjust this value to align the image with the text */
 }
 
+/* Admin Product List Style */
+
+.admin-product-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-product-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.admin-product-image {
+  width: 50px;
+  height: 50px;
+  border-radius: 5px;
+  margin-right: 10px;
+}
+
+.admin-product-details {
+  flex-grow: 1;
+}
+
+.admin-product-name,
+.admin-product-price,
+.admin-product-rating {
+  margin: 5px 0;
+}
+
+.admin-product-item button {
+  margin-left: 10px;
+  padding: 5px 10px;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.admin-product-item button:hover {
+  background: #0056b3;
+}
+

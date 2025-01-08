@@ -313,9 +313,16 @@ function addToCart(productId) {
   fetch(`http://localhost:3000/api/products/${productId}`)
     .then((response) => response.json())
     .then((product) => {
-      cart.push(product);
+      const existingProduct = cart.find(item => item.id === productId);
+      if (existingProduct) {
+        existingProduct.quantity += 1;
+      } else {
+        product.quantity = 1;
+        cart.push(product);
+      }
       saveCart();
       alert(`${product.name} added to cart.`);
+      updateCart();
     })
     .catch((error) => {
       console.error('Error adding to cart:', error);
@@ -328,8 +335,28 @@ function saveCart() {
 
 function loadCart() {
   const savedCart = JSON.parse(localStorage.getItem('cart')) || [];
-  cart = savedCart;
-  updateCart();
+  fetch('http://localhost:3000/api/products')
+    .then(response => response.json())
+    .then(products => {
+      const unavailableItems = [];
+      cart = savedCart.filter(cartItem => {
+        const product = products.find(product => product.id === cartItem.id);
+        if (!product) {
+          unavailableItems.push(cartItem.name);
+        }
+        return product !== undefined;
+      });
+      if (unavailableItems.length > 0) {
+        alert(`The following products are no longer sold: ${unavailableItems.join(', ')}`);
+      }
+      saveCart();
+      updateCart();
+    })
+    .catch(error => {
+      console.error('Error loading products:', error);
+      cart = savedCart;
+      updateCart();
+    });
 }
 
 function updateCart() {
