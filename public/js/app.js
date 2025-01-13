@@ -260,7 +260,7 @@ function loadProducts() {
       productsContainer.innerHTML = products
         .map(
           (product) => `
-            <div class="product-card">
+            <div class="product-card" onclick="navigateToProduct(${product.id})">
               <img src="${product.image}" alt="${product.name}" class="product-image" />
               <div class="product-info">
                 <h4 class="brand">Brand Name</h4>
@@ -270,7 +270,7 @@ function loadProducts() {
                 </div>
                 <p class="price">£${product.price.toFixed(2)}</p>
               </div>
-              <button class="add-to-cart" onclick="addToCart(${product.id})">
+              <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
                 <img src="../assets/images/basket3.svg" alt="Cart Icon" />
               </button>
             </div>
@@ -282,6 +282,10 @@ function loadProducts() {
       console.error('Error fetching products:', error);
       productsContainer.innerHTML = 'Failed to load products.';
     });
+}
+
+function navigateToProduct(productId) {
+  window.location.href = `product.html?id=${productId}`;
 }
 
 // Helper function to generate stars based on the rating
