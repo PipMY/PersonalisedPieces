@@ -56,6 +56,11 @@ app.get('/checkout', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'checkout.html'));
 });
 
+// Serve the product HTML file
+app.get('/product', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'product.html'));
+});
+
 // Endpoint to serve the configuration file
 app.get("/auth_config.json", (req, res) => {
   const configPath = path.join(__dirname, "auth_config.json");

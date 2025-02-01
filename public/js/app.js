@@ -1,7 +1,6 @@
 const app = document.getElementById('app');
 const content = document.getElementById('content');
 
-
 let auth0Client = null;
 let cart = [];
 
@@ -43,12 +42,6 @@ window.onload = async () => {
   }
 };
 
-
-
-
-
-
-
 const updateUI = async () => {
   if (!auth0Client) {
     console.error("auth0Client is not initialized");
@@ -56,9 +49,6 @@ const updateUI = async () => {
   }
 
   const isAuthenticated = await auth0Client.isAuthenticated();
-
-  document.getElementById("btn-logout").disabled = !isAuthenticated;
-  document.getElementById("btn-login").disabled = isAuthenticated;
 
   if (isAuthenticated) {
     const user = await auth0Client.getUser();
@@ -115,6 +105,7 @@ const logout = () => {
     }
   });
 };
+
 const routes = {
   home: () => {
     fetch('home.html')
@@ -197,7 +188,6 @@ function navigate(route) {
     content.classList.remove('fade-out');
   }, 200); // Match the duration of the CSS transition
 }
-
 
 function setActiveLink(route) {
   const links = document.querySelectorAll('header li a');
@@ -284,8 +274,54 @@ function loadProducts() {
     });
 }
 
+let previousRoute = null;
+
 function navigateToProduct(productId) {
-  window.location.href = `product.html?id=${productId}`;
+  previousRoute = location.hash.replace('#', '') || 'home';
+  content.classList.add('fade-out');
+  setTimeout(() => {
+    fetch(`product.html?id=${productId}`)
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        loadProductDetails(productId);
+        window.history.pushState({}, 'product', `#product?id=${productId}`);
+        setActiveLink('');
+        content.classList.remove('fade-out');
+      })
+      .catch(error => {
+        console.error('Error loading product page:', error);
+        content.classList.remove('fade-out');
+      });
+  }, 200); // Match the duration of the CSS transition
+}
+
+function loadProductDetails(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}`)
+    .then(response => response.json())
+    .then(product => {
+      const productDetailsContainer = document.getElementById('product-details');
+      productDetailsContainer.innerHTML = `
+        <div class="product-detail-card">
+          <img src="${product.image}" alt="${product.name}" class="product-detail-image" />
+          <div class="product-detail-info">
+            <h2 class="product-detail-title">${product.name}</h2>
+            <div class="rating">
+              ${generateStars(product.rating)} ${product.rating.toFixed(1)}
+            </div>
+            <p class="product-detail-price">£${product.price.toFixed(2)}</p>
+            <button class="add-to-cart" onclick="addToCart(${product.id})">
+              Add to Cart
+            </button>
+          </div>
+        </div>
+      `;
+    })
+    .catch(error => {
+      console.error('Error fetching product details:', error);
+      const productDetailsContainer = document.getElementById('product-details');
+      productDetailsContainer.innerHTML = 'Failed to load product details.';
+    });
 }
 
 // Helper function to generate stars based on the rating
@@ -310,8 +346,6 @@ function generateStars(rating) {
     emptyStarHTML.repeat(emptyStars)
   );
 }
-
-
 
 function addToCart(productId) {
   fetch(`http://localhost:3000/api/products/${productId}`)
@@ -381,9 +415,13 @@ function updateCart() {
     )
     .join('');
 
+  const totalAmount = cart.reduce((total, item) => total + item.price * item.quantity, 0);
+  document.getElementById('cart-total-amount').textContent = `£${totalAmount.toFixed(2)}`;
+
   const buyButton = document.createElement('button');
   buyButton.textContent = 'Buy';
   buyButton.classList.add('buy-button');
+  buyButton.disabled = cart.length === 0; // Disable if cart is empty
   buyButton.addEventListener('click', buyItems);
   cartItems.appendChild(buyButton);
 }
@@ -428,8 +466,15 @@ window.addEventListener('popstate', async () => {
     }
   }
 
-  routes[route]();
-  setActiveLink(route);
+  if (route.startsWith('product')) {
+    const productId = route.split('=')[1];
+    navigateToProduct(productId);
+  } else if (route === "" && previousRoute === "shop") {
+    navigate("shop");
+  } else {
+    routes[route]();
+    setActiveLink(route);
+  }
 });
 
 // Handle initial route
