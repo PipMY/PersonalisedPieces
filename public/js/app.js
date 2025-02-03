@@ -158,6 +158,15 @@ const routes = {
       })
       .catch(error => console.error('Error loading admin page:', error));
   },
+  orders: () => {
+    fetch('orders.html')
+      .then(response => response.text())
+      .then(html => {
+        content.innerHTML = html;
+        loadOrderHistory();
+      })
+      .catch(error => console.error('Error loading orders page:', error));
+  },
 };
 
 function navigate(route) {
@@ -246,27 +255,38 @@ function loadProducts() {
   fetch('http://localhost:3000/api/products') // Replace with your server URL if needed
     .then((response) => response.json())
     .then((products) => {
-      // Display products on the page
-      productsContainer.innerHTML = products
-        .map(
-          (product) => `
-            <div class="product-card" onclick="navigateToProduct(${product.id})">
-              <img src="${product.image}" alt="${product.name}" class="product-image" />
-              <div class="product-info">
-                <h4 class="brand">Brand Name</h4>
-                <h3 class="product-title">${product.name}</h3>
-                <div class="rating">
-                  ${generateStars(product.rating)} ${product.rating.toFixed(1)}
+      // Fetch reviews data from the server
+      fetch('http://localhost:3000/api/reviews')
+        .then((response) => response.json())
+        .then((reviews) => {
+          // Display products on the page
+          productsContainer.innerHTML = products
+            .map((product) => {
+              const productReviews = reviews.find((r) => r.productId === product.id);
+              const averageRating = productReviews ? calculateAverageRating(productReviews.reviews) : product.rating;
+              return `
+                <div class="product-card" onclick="navigateToProduct(${product.id})">
+                  <img src="${product.image}" alt="${product.name}" class="product-image" />
+                  <div class="product-info">
+                    <h4 class="brand">Brand Name</h4>
+                    <h3 class="product-title">${product.name}</h3>
+                    <div class="rating">
+                      ${generateStars(averageRating)} ${averageRating.toFixed(1)}
+                    </div>
+                    <p class="price">£${product.price.toFixed(2)}</p>
+                  </div>
+                  <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
+                    <img src="../assets/images/basket3.svg" alt="Cart Icon" />
+                  </button>
                 </div>
-                <p class="price">£${product.price.toFixed(2)}</p>
-              </div>
-              <button class="add-to-cart" onclick="event.stopPropagation(); addToCart(${product.id})">
-                <img src="../assets/images/basket3.svg" alt="Cart Icon" />
-              </button>
-            </div>
-          `
-        )
-        .join('');
+              `;
+            })
+            .join('');
+        })
+        .catch((error) => {
+          console.error('Error fetching reviews:', error);
+          productsContainer.innerHTML = 'Failed to load products.';
+        });
     })
     .catch((error) => {
       console.error('Error fetching products:', error);
@@ -301,21 +321,38 @@ function loadProductDetails(productId) {
     .then(response => response.json())
     .then(product => {
       const productDetailsContainer = document.getElementById('product-details');
-      productDetailsContainer.innerHTML = `
-        <div class="product-detail-card">
-          <img src="${product.image}" alt="${product.name}" class="product-detail-image" />
-          <div class="product-detail-info">
-            <h2 class="product-detail-title">${product.name}</h2>
-            <div class="rating">
-              ${generateStars(product.rating)} ${product.rating.toFixed(1)}
+      fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+        .then(response => response.json())
+        .then(reviews => {
+          const averageRating = calculateAverageRating(reviews);
+          productDetailsContainer.innerHTML = `
+            <div class="product-detail-card">
+              <img src="${product.image}" alt="${product.name}" class="product-detail-image" />
+              <div class="product-detail-info">
+                <h2 class="product-detail-title">${product.name}</h2>
+                <div class="rating">
+                  ${generateStars(averageRating)} ${averageRating.toFixed(1)}
+                </div>
+                <p class="product-detail-price">£${product.price.toFixed(2)}</p>
+                <button class="add-to-cart" onclick="addToCart(${product.id})">
+                  Add to Cart
+                </button>
+              </div>
+              <div class="reviews-section">
+                <h3>Reviews</h3>
+                <div id="reviews-container"></div>
+                <form id="review-form">
+                  <input type="text" id="reviewer-name" placeholder="Your Name" required />
+                  <textarea id="review-text" placeholder="Your Review" required></textarea>
+                  <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
+                  <button type="submit">Submit Review</button>
+                </form>
+              </div>
             </div>
-            <p class="product-detail-price">£${product.price.toFixed(2)}</p>
-            <button class="add-to-cart" onclick="addToCart(${product.id})">
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      `;
+          `;
+          loadReviews(productId);
+          document.getElementById('review-form').addEventListener('submit', (e) => submitReview(e, productId));
+        });
     })
     .catch(error => {
       console.error('Error fetching product details:', error);
@@ -324,7 +361,72 @@ function loadProductDetails(productId) {
     });
 }
 
-// Helper function to generate stars based on the rating
+function loadReviews(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+    .then(response => response.json())
+    .then(reviews => {
+      const reviewsContainer = document.getElementById('reviews-container');
+      reviewsContainer.innerHTML = reviews.map(review => `
+        <div class="review">
+          <h4>${review.reviewer}</h4>
+          <div class="rating">${generateStars(review.rating)} ${review.rating.toFixed(1)}</div>
+          <p>${review.text}</p>
+        </div>
+      `).join('');
+    })
+    .catch(error => {
+      console.error('Error loading reviews:', error);
+      document.getElementById('reviews-container').innerHTML = 'Failed to load reviews.';
+    });
+}
+
+function submitReview(e, productId) {
+  e.preventDefault();
+  const reviewer = document.getElementById('reviewer-name').value;
+  const text = document.getElementById('review-text').value;
+  const rating = parseFloat(document.getElementById('review-rating').value);
+
+  const review = { reviewer, text, rating };
+
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(review)
+  })
+    .then(response => response.json())
+    .then(data => {
+      alert('Review submitted!');
+      loadReviews(productId);
+      document.getElementById('review-form').reset();
+      updateProductRating(productId);
+    })
+    .catch(error => {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review.');
+    });
+}
+
+function updateProductRating(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+    .then(response => response.json())
+    .then(reviews => {
+      const averageRating = calculateAverageRating(reviews);
+      const ratingElement = document.querySelector('.product-detail-info .rating');
+      ratingElement.innerHTML = `${generateStars(averageRating)} ${averageRating.toFixed(1)}`;
+    })
+    .catch(error => {
+      console.error('Error updating product rating:', error);
+    });
+}
+
+function calculateAverageRating(reviews) {
+  if (!reviews || reviews.length === 0) return 0;
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  return totalRating / reviews.length;
+}
+
 function generateStars(rating) {
   const fullStarURL = "../assets/images/star-fill.svg"; // URL for full star
   const halfStarURL = "../assets/images/star-half.svg"; // URL for half star
@@ -443,6 +545,27 @@ function loadAdminScript() {
   const script = document.createElement('script');
   script.src = 'js/admin.js';
   document.body.appendChild(script);
+}
+
+function loadOrderHistory() {
+  fetch('http://localhost:3000/api/users/orders')
+    .then(response => response.json())
+    .then(orders => {
+      const ordersContainer = document.getElementById('orders-container');
+      ordersContainer.innerHTML = orders.map(order => `
+        <div class="order">
+          <h4>Order ID: ${order.orderId}</h4>
+          <p>Total: £${order.total.toFixed(2)}</p>
+          <ul>
+            ${order.items.map(item => `<li>Product ID: ${item.productId}, Quantity: ${item.quantity}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    })
+    .catch(error => {
+      console.error('Error loading order history:', error);
+      document.getElementById('orders-container').innerHTML = 'Failed to load order history.';
+    });
 }
 
 window.addEventListener('popstate', async () => {

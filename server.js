@@ -3,6 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const stripe = require("stripe")('sk_test_51QdtFwRuJ1XrmYECPnWcFE5pryjFJaOpCmTIEwYSs2d6xlA1NVXq18DIUZTik4sGHcb3PddUJ5HRtIRHjtYFTEmS00EI0weuxC');
+const swaggerJsDoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+
+
 
 const app = express();
 const port = 3000;
@@ -10,6 +16,30 @@ const port = 3000;
 // Middleware to parse JSON body in POST requests
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+app.use(bodyParser.json());
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+
+const swaggerOptions = {
+  swaggerDefinition: {
+    openapi: "3.0.0",
+    info: {
+      title: "My API Documentation",
+      version: "1.0.0",
+      description: "API documentation for my Express backend",
+    },
+    servers: [
+      {
+        url: "http://localhost:3000",
+        description: "Local server",
+      },
+    ],
+  },
+  apis: ["server.js"], // Point this to your main backend file
+};
+
+const swaggerDocs = swaggerJsDoc(swaggerOptions);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const calculateOrderAmount = (items) => {
   // Calculate the order total on the server to prevent
@@ -20,6 +50,10 @@ const calculateOrderAmount = (items) => {
   });
   return total;
 };
+
+const products = JSON.parse(fs.readFileSync('products.json', 'utf-8'));
+const reviews = JSON.parse(fs.readFileSync('reviews.json', 'utf-8'));
+const users = JSON.parse(fs.readFileSync('users.json', 'utf-8'));
 
 app.post("/create-payment-intent", async (req, res) => {
   const { items } = req.body;
@@ -94,6 +128,57 @@ const upload = multer({
   }
 });
 
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Upload an image
+ *     description: Allows users to upload an image, which is then stored on the server.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: The image file to upload
+ *     responses:
+ *       200:
+ *         description: Successfully uploaded the image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 filePath:
+ *                   type: string
+ *                   example: "/assets/images/example.jpg"
+ *       400:
+ *         description: No file uploaded.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "No file uploaded"
+ *       500:
+ *         description: Server error while saving the image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to save image"
+ */
+
+
 // Allows for the image to be uploaded and saved to the server
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
@@ -116,44 +201,102 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   });
 });
 
-// Endpoint to get all products (for the store page)
+/**
+ * @swagger
+ * /api/products:
+ *   get:
+ *     summary: Retrieve all products
+ *     description: Fetch all available products from the store.
+ *     responses:
+ *       200:
+ *         description: A list of products.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: integer
+ *                     example: 1
+ *                   name:
+ *                     type: string
+ *                     example: "Product Name"
+ *                   price:
+ *                     type: number
+ *                     example: 9.99
+ *                   rating:
+ *                     type: number
+ *                     example: 4.5
+ */
 app.get('/api/products', (req, res) => {
-  const productsFilePath = path.join(__dirname, 'products.json');
-  if (!fs.existsSync(productsFilePath)) {
-    fs.writeFileSync(productsFilePath, JSON.stringify([])); // Create an empty array if the file doesn't exist
-  }
-
-  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
-    if (err) {
-      res.status(500).json({ error: 'Failed to read products data' });
-    } else {
-      res.json(JSON.parse(data));  // Send products data as JSON
-    }
-  });
+  res.json(products);
 });
+
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   get:
+ *     summary: Retrieve a single product by ID
+ *     description: Fetch a product's details by its unique ID. Returns 404 if the product is not found.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The unique ID of the product
+ *     responses:
+ *       200:
+ *         description: Product details retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: "Product Name"
+ *                 price:
+ *                   type: number
+ *                   example: 9.99
+ *                 rating:
+ *                   type: number
+ *                   example: 4.5
+ *       404:
+ *         description: Product not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Product not found"
+ *       500:
+ *         description: Error reading product data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to read products data"
+ */
 
 // Get endpoint for a single product (for when you are adding to the basket) returns 404 if it cannot be found
 app.get('/api/products/:id', (req, res) => {
-  const productsFilePath = path.join(__dirname, 'products.json');
-  if (!fs.existsSync(productsFilePath)) {
-    return res.status(404).json({ error: 'Products file not found' });
+  const product = products.find(p => p.id === parseInt(req.params.id));
+  if (product) {
+    res.json(product);
+  } else {
+    res.status(404).send('Product not found');
   }
-
-  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to read products data' });
-    }
-
-    const products = JSON.parse(data);
-    const productId = parseInt(req.params.id, 10);
-    const product = products.find(p => p.id === productId);
-
-    if (product) {
-      res.json(product);
-    } else {
-      res.status(404).json({ error: 'Product not found' });
-    }
-  });
 });
 
 // Validation function for new product
@@ -165,6 +308,7 @@ function validateProduct(product) {
   if (!image || typeof image !== 'string') return 'Invalid product image';
   return null;
 }
+
 
 // Endpoint to add a new product
 app.post('/api/products', (req, res) => {
@@ -229,7 +373,189 @@ app.put('/api/products/:id', (req, res) => {
   });
 });
 
+/**
+ * @swagger
+ * /api/products:
+ *   post:
+ *     summary: Add a new product
+ *     description: Creates a new product and adds it to the database.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "New Product"
+ *               price:
+ *                 type: number
+ *                 example: 19.99
+ *               rating:
+ *                 type: number
+ *                 example: 4.2
+ *     responses:
+ *       200:
+ *         description: Successfully added the product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: "New Product"
+ *                 price:
+ *                   type: number
+ *                   example: 19.99
+ *                 rating:
+ *                   type: number
+ *                   example: 4.2
+ *       400:
+ *         description: Invalid input data.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Invalid product data"
+ *       500:
+ *         description: Server error while saving product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to save product"
+ */
+
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   put:
+ *     summary: Update a product by ID
+ *     description: Updates the details of an existing product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The unique ID of the product
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Updated Product Name"
+ *               price:
+ *                 type: number
+ *                 example: 24.99
+ *               rating:
+ *                 type: number
+ *                 example: 4.7
+ *     responses:
+ *       200:
+ *         description: Successfully updated the product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: "Updated Product Name"
+ *                 price:
+ *                   type: number
+ *                   example: 24.99
+ *                 rating:
+ *                   type: number
+ *                   example: 4.7
+ *       404:
+ *         description: Product not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Product not found"
+ *       500:
+ *         description: Server error while updating product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to update product"
+ */
+
+/**
+ * @swagger
+ * /api/products/{id}:
+ *   delete:
+ *     summary: Delete a product by ID
+ *     description: Removes a product from the database.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The unique ID of the product
+ *     responses:
+ *       200:
+ *         description: Successfully deleted the product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Product deleted"
+ *       404:
+ *         description: Product not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Product not found"
+ *       500:
+ *         description: Server error while deleting product.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to delete product"
+ */
+
 // Endpoint to delete a product
+
 app.delete('/api/products/:id', (req, res) => {
   const productId = parseInt(req.params.id, 10);
 
@@ -250,6 +576,139 @@ app.delete('/api/products/:id', (req, res) => {
     });
   });
 });
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews:
+ *   get:
+ *     summary: Get reviews for a product
+ *     description: Retrieves all reviews for a specific product by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the product whose reviews are to be retrieved.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved reviews.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   rating:
+ *                     type: integer
+ *                     example: 5
+ *                   comment:
+ *                     type: string
+ *                     example: "Great product!"
+ *       404:
+ *         description: Reviews not found for the given product ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Reviews not found"
+ */
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews:
+ *   post:
+ *     summary: Add a review to a product
+ *     description: Allows users to add a review for a specific product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the product to review.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 example: 5
+ *               comment:
+ *                 type: string
+ *                 example: "Amazing quality!"
+ *     responses:
+ *       201:
+ *         description: Review successfully added.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 productId:
+ *                   type: integer
+ *                   example: 1
+ *                 rating:
+ *                   type: integer
+ *                   example: 5
+ *                 comment:
+ *                   type: string
+ *                   example: "Amazing quality!"
+ *       404:
+ *         description: Product not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Product not found"
+ */
+
+// Endpoint to get reviews for a product
+app.get('/api/products/:id/reviews', (req, res) => {
+  const productId = parseInt(req.params.id);
+  const productReviews = reviews.find(review => review.productId === productId);
+  if (productReviews) {
+    res.json(productReviews.reviews);
+  } else {
+    res.status(404).json({ error: 'Reviews not found' });
+  }
+});
+
+// Endpoint to add a review to a product
+app.post('/api/products/:id/reviews', (req, res) => {
+  const productId = parseInt(req.params.id);
+  const product = products.find(p => p.id === productId);
+  if (product) {
+    const review = { ...req.body, productId: product.id };
+    const productReviews = reviews.find(r => r.productId === productId);
+    if (productReviews) {
+      productReviews.reviews.push(review);
+    } else {
+      reviews.push({ productId: product.id, reviews: [review] });
+    }
+    fs.writeFileSync('reviews.json', JSON.stringify(reviews, null, 2));
+    res.status(201).json(review);
+  } else {
+    res.status(404).send('Product not found');
+  }
+});
+
+function calculateAverageRating(productId) {
+  const productReviews = reviews.filter(review => review.productId === productId);
+  if (productReviews.length === 0) return 0;
+  const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
+  return totalRating / productReviews.length;
+}
 
 // Start the server
 app.listen(port, () => {

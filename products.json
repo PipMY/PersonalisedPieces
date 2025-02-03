@@ -3,14 +3,14 @@
     "id": 1,
     "name": "Kunai",
     "price": 8,
-    "rating": 4.4,
+    "rating": 4.5,
     "image": "http://localhost:3000/assets/images/kunai.jpg"
   },
   {
     "id": 2,
     "name": "Shuriken",
     "price": 4,
-    "rating": 1.4,
+    "rating": 1.5,
     "image": "http://localhost:3000/assets/images/shuriken.jpg"
   }
 ]

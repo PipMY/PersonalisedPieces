@@ -13,6 +13,7 @@ body {
   margin: 0;
   justify-content: center;
   align-items: center;
+  overflow-y: scroll; /* Ensure scrollbar is always visible */
 }
 a {
   text-decoration: none;
@@ -20,6 +21,23 @@ a {
 }
 *:focus {
   outline: 0;
+}
+
+body::-webkit-scrollbar {
+  width: 12px;
+}
+
+body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+body::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 6px;
+}
+
+body::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
 
 .main {
@@ -85,6 +103,46 @@ ul {
   list-style: none;
   padding: 0;
   margin: 0;
+}
+
+/* Hero Section Style */
+.hero {
+  background: none; /* Remove background image */
+  height: 80vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  text-align: center;
+  position: relative;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 600px;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.hero-images {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.hero-images img {
+  width: 150px;
+  height: auto;
+  border-radius: 10px;
 }
 
 /* Product Card Style */
@@ -455,5 +513,68 @@ ul {
   font-weight: bold;
   color: green;
   margin: 10px 0;
+}
+
+/* Featured Products Style */
+.featured-products {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.featured-products h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.reviews-section {
+  margin-top: 20px;
+}
+
+.reviews-section h3 {
+  font-size: 1.5rem;
+  margin-bottom: 10px;
+}
+
+.review {
+  border-bottom: 1px solid #ddd;
+  padding: 10px 0;
+}
+
+.review h4 {
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+.review p {
+  margin: 5px 0;
+}
+
+#review-form {
+  margin-top: 20px;
+}
+
+#review-form input,
+#review-form textarea {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+#review-form button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+#review-form button:hover {
+  background-color: #45a049;
 }
 

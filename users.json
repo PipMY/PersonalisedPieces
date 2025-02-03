@@ -1,0 +1,21 @@
+[
+  {
+    "id": 1,
+    "name": "Alice",
+    "orders": [
+      {
+        "orderId": 101,
+        "items": [
+          { "productId": 1, "quantity": 2 },
+          { "productId": 2, "quantity": 1 }
+        ],
+        "total": 20
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "name": "Bob",
+    "orders": []
+  }
+]

@@ -1,0 +1,48 @@
+[
+  {
+    "productId": 1,
+    "reviews": [
+      {
+        "reviewer": "Alice",
+        "text": "Great quality!",
+        "rating": 5
+      },
+      {
+        "reviewer": "Bob",
+        "text": "Good value for money.",
+        "rating": 4
+      },
+      {
+        "reviewer": "Peter",
+        "text": "Very Sharp! Too Sharp in fact",
+        "rating": 2
+      },
+      {
+        "reviewer": "Harry Potter",
+        "text": "It's nice",
+        "rating": 5
+      }
+    ]
+  },
+  {
+    "productId": 2,
+    "reviews": [
+      {
+        "reviewer": "Charlie",
+        "text": "Not sharp enough.",
+        "rating": 1
+      },
+      {
+        "reviewer": "Dave",
+        "text": "Poor quality.",
+        "rating": 2
+      },
+      {
+        "reviewer": "James Bond",
+        "text": "Used this, didn't work",
+        "rating": 1,
+        "productId": 2
+      }
+    ]
+  }
+]
