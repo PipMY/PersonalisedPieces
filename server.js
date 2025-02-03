@@ -684,6 +684,11 @@ app.get('/api/products/:id/reviews', (req, res) => {
   }
 });
 
+// Endpoint to get all reviews
+app.get('/api/reviews', (req, res) => {
+  res.json(reviews);
+});
+
 // Endpoint to add a review to a product
 app.post('/api/products/:id/reviews', (req, res) => {
   const productId = parseInt(req.params.id);
@@ -697,17 +702,23 @@ app.post('/api/products/:id/reviews', (req, res) => {
       reviews.push({ productId: product.id, reviews: [review] });
     }
     fs.writeFileSync('reviews.json', JSON.stringify(reviews, null, 2));
+
+    // Update product rating based on the average of all reviews
+    const updatedReviews = reviews.find(r => r.productId === productId).reviews;
+    const averageRating = calculateAverageRating(updatedReviews);
+    product.rating = averageRating;
+    fs.writeFileSync('products.json', JSON.stringify(products, null, 2));
+
     res.status(201).json(review);
   } else {
     res.status(404).send('Product not found');
   }
 });
 
-function calculateAverageRating(productId) {
-  const productReviews = reviews.filter(review => review.productId === productId);
-  if (productReviews.length === 0) return 0;
-  const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
-  return totalRating / productReviews.length;
+function calculateAverageRating(reviews) {
+  if (reviews.length === 0) return 0;
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  return totalRating / reviews.length;
 }
 
 // Start the server

@@ -263,6 +263,7 @@ function loadProducts() {
           productsContainer.innerHTML = products
             .map((product) => {
               const productReviews = reviews.find((r) => r.productId === product.id);
+              const reviewCount = productReviews ? productReviews.reviews.length : 0;
               const averageRating = productReviews ? calculateAverageRating(productReviews.reviews) : product.rating;
               return `
                 <div class="product-card" onclick="navigateToProduct(${product.id})">
@@ -271,7 +272,7 @@ function loadProducts() {
                     <h4 class="brand">Brand Name</h4>
                     <h3 class="product-title">${product.name}</h3>
                     <div class="rating">
-                      ${generateStars(averageRating)} ${averageRating.toFixed(1)}
+                      ${generateStars(averageRating)} (${reviewCount} reviews)
                     </div>
                     <p class="price">£${product.price.toFixed(2)}</p>
                   </div>

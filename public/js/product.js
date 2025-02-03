@@ -7,23 +7,33 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(response => response.json())
       .then(product => {
         const productDetailsContainer = document.getElementById('product-details');
-        productDetailsContainer.innerHTML = `
-          <div class="product-card">
-            <img src="${product.image}" alt="${product.name}" class="product-image" />
-            <div class="product-info">
-              <h4 class="brand">Brand Name</h4>
-              <h3 class="product-title">${product.name}</h3>
-              <div class="rating">
-                ${generateStars(product.rating)} ${product.rating.toFixed(1)}
+        fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+          .then(response => response.json())
+          .then(reviews => {
+            const averageRating = calculateAverageRating(reviews);
+            const reviewCount = reviews.length;
+            productDetailsContainer.innerHTML = `
+              <div class="product-card">
+                <img src="${product.image}" alt="${product.name}" class="product-image" />
+                <div class="product-info">
+                  <h4 class="brand">Brand Name</h4>
+                  <h3 class="product-title">${product.name}</h3>
+                  <div class="rating">
+                    ${generateStars(averageRating)} (${reviewCount} reviews)
+                  </div>
+                  <p class="price">£${product.price.toFixed(2)}</p>
+                  <p class="description">${product.description || 'No description available.'}</p>
+                  <button class="add-to-cart" onclick="addToCart(${product.id})">
+                    Add to Cart
+                  </button>
+                </div>
               </div>
-              <p class="price">£${product.price.toFixed(2)}</p>
-              <p class="description">${product.description || 'No description available.'}</p>
-              <button class="add-to-cart" onclick="addToCart(${product.id})">
-                Add to Cart
-              </button>
-            </div>
-          </div>
-        `;
+            `;
+          })
+          .catch(error => {
+            console.error('Error fetching reviews:', error);
+            productDetailsContainer.innerHTML = 'Failed to load product details.';
+          });
       })
       .catch(error => {
         console.error('Error fetching product details:', error);
@@ -77,4 +87,9 @@ function saveCart() {
 
 function updateCart() {
   // Implement cart update logic if needed
+}
+
+function calculateAverageRating(reviews) {
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  return totalRating / reviews.length;
 }
