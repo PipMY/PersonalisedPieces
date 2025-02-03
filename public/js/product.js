@@ -3,57 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const productId = urlParams.get('id');
 
   if (productId) {
-    fetch(`http://localhost:3000/api/products/${productId}`)
-      .then(response => response.json())
-      .then(product => {
-        const productDetailsContainer = document.getElementById('product-details');
-        fetch(`http://localhost:3000/api/products/${productId}/reviews`)
-          .then(response => response.json())
-          .then(reviews => {
-            const averageRating = calculateAverageRating(reviews);
-            const reviewCount = reviews.length;
-            const imagesHtml = product.images && product.images.length > 0 ? product.images.map(image => `<img src="${image}" alt="${product.name}" class="product-image" />`).join('') : '';
-            productDetailsContainer.innerHTML = `
-              <div class="product-detail-card">
-                <div class="product-images">
-                  ${imagesHtml}
-                </div>
-                <div class="product-info">
-                  <h4 class="brand">Brand Name</h4>
-                  <h3 class="product-title">${product.name}</h3>
-                  <div class="rating">
-                    ${generateStars(averageRating)} (${reviewCount} reviews)
-                  </div>
-                  <p class="price">£${product.price.toFixed(2)}</p>
-                  <p class="description">${product.description || 'No description available.'}</p>
-                  <button class="add-to-cart" onclick="addToCart(${product.id})">
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-              <div class="reviews-section">
-                <h3>Reviews</h3>
-                <div id="reviews-container"></div>
-                <form id="review-form">
-                  <input type="text" id="reviewer-name" placeholder="Your Name" required />
-                  <textarea id="review-text" placeholder="Your Review" required></textarea>
-                  <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
-                  <button type="submit">Submit Review</button>
-                </form>
-              </div>
-            `;
-            loadReviews(productId);
-            document.getElementById('review-form').addEventListener('submit', (e) => submitReview(e, productId));
-          })
-          .catch(error => {
-            console.error('Error fetching reviews:', error);
-            productDetailsContainer.innerHTML = 'Failed to load product details.';
-          });
-      })
-      .catch(error => {
-        console.error('Error fetching product details:', error);
-        document.getElementById('product-details').innerHTML = 'Failed to load product details.';
-      });
+    loadProductDetails(productId);
   } else {
     document.getElementById('product-details').innerHTML = 'Product not found.';
   }
@@ -166,5 +116,60 @@ function updateProductRating(productId) {
     })
     .catch(error => {
       console.error('Error updating product rating:', error);
+    });
+}
+
+function loadProductDetails(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}`)
+    .then(response => response.json())
+    .then(product => {
+      const productDetailsContainer = document.getElementById('product-details');
+      fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+        .then(response => response.json())
+        .then(reviews => {
+          const averageRating = calculateAverageRating(reviews);
+          const reviewCount = reviews.length;
+          const imagesHtml = product.images && product.images.length > 0 ? product.images.map(image => `<img src="${image}" alt="${product.name}" class="product-image" />`).join('') : '';
+          productDetailsContainer.innerHTML = `
+            <div class="product-detail-card">
+              <div class="product-images">
+                ${imagesHtml}
+              </div>
+              <div class="product-info">
+                <h4 class="brand">Brand Name</h4>
+                <h3 class="product-title">${product.name}</h3>
+                <div class="rating">
+                  ${generateStars(averageRating)} (${reviewCount} reviews)
+                </div>
+                <p class="price">£${product.price.toFixed(2)}</p>
+                <p class="description">${product.description || 'No description available.'}</p>
+                ${product.customizable ? `<p class="customization-details">Customization: ${product.customizationDetails}</p>` : ''}
+                <button class="add-to-cart" onclick="addToCart(${product.id})">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+            <div class="reviews-section">
+              <h3>Reviews</h3>
+              <div id="reviews-container"></div>
+              <form id="review-form">
+                <input type="text" id="reviewer-name" placeholder="Your Name" required />
+                <textarea id="review-text" placeholder="Your Review" required></textarea>
+                <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
+                <button type="submit">Submit Review</button>
+              </form>
+            </div>
+          `;
+          loadReviews(productId);
+          document.getElementById('review-form').addEventListener('submit', (e) => submitReview(e, productId));
+        })
+        .catch(error => {
+          console.error('Error fetching reviews:', error);
+          productDetailsContainer.innerHTML = 'Failed to load product details.';
+        });
+    })
+    .catch(error => {
+      console.error('Error fetching product details:', error);
+      document.getElementById('product-details').innerHTML = 'Failed to load product details.';
     });
 }

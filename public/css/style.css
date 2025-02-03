@@ -492,14 +492,11 @@ ul {
 
 /* Product Detail Style */
 .product-detail-card {
-  display: flex;
-  flex-direction: column;
   align-items: center;
   background: #fff;
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  size: 4rem;
   max-width: 80%; /* Set max-width to 80% to fill a larger portion of the screen */
   margin: 0 auto;
 }

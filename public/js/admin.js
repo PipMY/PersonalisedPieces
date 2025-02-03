@@ -58,12 +58,19 @@ function updateImagePreview() {
 
 document.getElementById('add-product-form').addEventListener('submit', addProductHandler);
 
+document.getElementById('customizable-checkbox').addEventListener('change', (e) => {
+  const customizationDetailsContainer = document.getElementById('customization-details-container');
+  customizationDetailsContainer.style.display = e.target.checked ? 'block' : 'none';
+});
+
 function addProductHandler(e) {
   e.preventDefault();
   console.log("Form submitted");  // Add this line for debugging
 
   const productName = document.getElementById('product-name').value;
   const productPrice = document.getElementById('product-price').value;
+  const isCustomizable = document.getElementById('customizable-checkbox').checked;
+  const customizationDetails = document.getElementById('customization-details').value;
 
   // Check if an image was selected
   if (images.length === 0) {
@@ -76,6 +83,8 @@ function addProductHandler(e) {
     price: parseFloat(productPrice),
     rating: 0, // Set rating to 0 by default
     images: [],  // Image URLs will be added after upload
+    customizable: isCustomizable,
+    customizationDetails: isCustomizable ? customizationDetails : null
   };
 
   console.log('New product data:', newProduct); // Add this to check the data
