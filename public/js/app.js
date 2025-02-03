@@ -192,7 +192,11 @@ function navigate(route) {
     }
 
     window.history.pushState({}, route, `#${route}`);
-    routes[route]();
+    if (routes[route]) {
+      routes[route]();
+    } else {
+      console.error(`Route ${route} not found`);
+    }
     setActiveLink(route);
     content.classList.remove('fade-out');
   }, 200); // Match the duration of the CSS transition
@@ -265,9 +269,10 @@ function loadProducts() {
               const productReviews = reviews.find((r) => r.productId === product.id);
               const reviewCount = productReviews ? productReviews.reviews.length : 0;
               const averageRating = productReviews ? calculateAverageRating(productReviews.reviews) : product.rating;
+              const mainImage = product.images && product.images.length > 0 ? product.images[0] : ''; // Use the first image as the main image
               return `
                 <div class="product-card" onclick="navigateToProduct(${product.id})">
-                  <img src="${product.image}" alt="${product.name}" class="product-image" />
+                  <img src="${mainImage}" alt="${product.name}" class="product-image" />
                   <div class="product-info">
                     <h4 class="brand">Brand Name</h4>
                     <h3 class="product-title">${product.name}</h3>
@@ -326,39 +331,48 @@ function loadProductDetails(productId) {
         .then(response => response.json())
         .then(reviews => {
           const averageRating = calculateAverageRating(reviews);
+          const reviewCount = reviews.length;
+          const imagesHtml = product.images && product.images.length > 0 ? product.images.map(image => `<img src="${image}" alt="${product.name}" class="product-image" />`).join('') : '';
           productDetailsContainer.innerHTML = `
             <div class="product-detail-card">
-              <img src="${product.image}" alt="${product.name}" class="product-detail-image" />
-              <div class="product-detail-info">
-                <h2 class="product-detail-title">${product.name}</h2>
+              <div class="product-images">
+                ${imagesHtml}
+              </div>
+              <div class="product-info">
+                <h4 class="brand">Brand Name</h4>
+                <h3 class="product-title">${product.name}</h3>
                 <div class="rating">
-                  ${generateStars(averageRating)} ${averageRating.toFixed(1)}
+                  ${generateStars(averageRating)} (${reviewCount} reviews)
                 </div>
-                <p class="product-detail-price">£${product.price.toFixed(2)}</p>
+                <p class="price">£${product.price.toFixed(2)}</p>
+                <p class="description">${product.description || 'No description available.'}</p>
                 <button class="add-to-cart" onclick="addToCart(${product.id})">
                   Add to Cart
                 </button>
               </div>
-              <div class="reviews-section">
-                <h3>Reviews</h3>
-                <div id="reviews-container"></div>
-                <form id="review-form">
-                  <input type="text" id="reviewer-name" placeholder="Your Name" required />
-                  <textarea id="review-text" placeholder="Your Review" required></textarea>
-                  <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
-                  <button type="submit">Submit Review</button>
-                </form>
-              </div>
+            </div>
+            <div class="reviews-section">
+              <h3>Reviews</h3>
+              <div id="reviews-container"></div>
+              <form id="review-form">
+                <input type="text" id="reviewer-name" placeholder="Your Name" required />
+                <textarea id="review-text" placeholder="Your Review" required></textarea>
+                <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
+                <button type="submit">Submit Review</button>
+              </form>
             </div>
           `;
           loadReviews(productId);
           document.getElementById('review-form').addEventListener('submit', (e) => submitReview(e, productId));
+        })
+        .catch(error => {
+          console.error('Error fetching reviews:', error);
+          productDetailsContainer.innerHTML = 'Failed to load product details.';
         });
     })
     .catch(error => {
       console.error('Error fetching product details:', error);
-      const productDetailsContainer = document.getElementById('product-details');
-      productDetailsContainer.innerHTML = 'Failed to load product details.';
+      document.getElementById('product-details').innerHTML = 'Failed to load product details.';
     });
 }
 
@@ -423,7 +437,7 @@ function updateProductRating(productId) {
 }
 
 function calculateAverageRating(reviews) {
-  if (!reviews || reviews.length === 0) return 0;
+  if (!Array.isArray(reviews) || reviews.length === 0) return 0;
   const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
   return totalRating / reviews.length;
 }

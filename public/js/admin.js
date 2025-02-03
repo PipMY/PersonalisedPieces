@@ -2,8 +2,8 @@ console.log("admin.js loaded");
 
 const dropArea = document.getElementById("image-drop-area");
 const fileInput = document.getElementById("image-file-input");
-const previewImage = document.getElementById("image-preview");
-let selectedFile = null;
+const imagePreviewContainer = document.getElementById("image-preview-container");
+let images = [];
 
 // Highlight drop area on dragover
 dropArea.addEventListener("dragover", (e) => {
@@ -22,15 +22,13 @@ dropArea.addEventListener("drop", (e) => {
   dropArea.classList.remove("dragging");
 
   if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-    selectedFile = e.dataTransfer.files[0];
-    showPreview(selectedFile);
+    handleFiles(e.dataTransfer.files);
   }
 });
 
 // Handle manual file selection
 fileInput.addEventListener("change", (e) => {
-  selectedFile = e.target.files[0];
-  showPreview(selectedFile);
+  handleFiles(e.target.files);
 });
 
 // Click-to-select file
@@ -42,10 +40,20 @@ dropArea.addEventListener("click", () => {
 function showPreview(file) {
   const reader = new FileReader();
   reader.onload = (e) => {
-    previewImage.src = e.target.result;
-    previewImage.style.display = "block";
+    images.push(file);
+    updateImagePreview();
   };
   reader.readAsDataURL(file);
+}
+
+function handleFiles(files) {
+  for (const file of files) {
+    showPreview(file);
+  }
+}
+
+function updateImagePreview() {
+  imagePreviewContainer.innerHTML = images.map(image => `<img src="${URL.createObjectURL(image)}" alt="Image Preview" class="image-preview" />`).join('');
 }
 
 document.getElementById('add-product-form').addEventListener('submit', addProductHandler);
@@ -56,11 +64,9 @@ function addProductHandler(e) {
 
   const productName = document.getElementById('product-name').value;
   const productPrice = document.getElementById('product-price').value;
-  const productRating = document.getElementById('product-rating').value; // Rating field
-  let productImage = previewImage.src; // Image URL from the preview
 
   // Check if an image was selected
-  if (!productImage || productImage === '') {
+  if (images.length === 0) {
     alert('Please select an image for the product.');
     return;
   }
@@ -68,28 +74,36 @@ function addProductHandler(e) {
   const newProduct = {
     name: productName,
     price: parseFloat(productPrice),
-    rating: parseFloat(productRating), // Ensure it's a number
-    image: productImage,  // Image URL
+    rating: 0, // Set rating to 0 by default
+    images: [],  // Image URLs will be added after upload
   };
 
   console.log('New product data:', newProduct); // Add this to check the data
 
-  // Upload image first if necessary
-  // If you want to upload the image to the server before submitting the product
-  const formData = new FormData();
-  formData.append('image', selectedFile);
+  // Upload images and get URLs
+  const uploadPromises = images.map((image, index) => {
+    const formData = new FormData();
+    formData.append('image', image, `image${index}.jpg`);
 
-  // Upload the image and get the URL
-  fetch('http://localhost:3000/api/upload', {
-    method: 'POST',
-    body: formData,
-  })
-  .then((response) => response.json())
-  .then((data) => {
-    if (data.filePath) {
-      newProduct.image = data.filePath;  // Update product image URL with the path received from server
+    return fetch('http://localhost:3000/api/upload', {
+      method: 'POST',
+      body: formData,
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.filePath) {
+        return data.filePath;
+      } else {
+        throw new Error('Failed to upload image');
+      }
+    });
+  });
 
-      // Now submit the product data with the image URL
+  Promise.all(uploadPromises)
+    .then(imageUrls => {
+      newProduct.images = imageUrls;
+
+      // Now submit the product data with the image URLs
       return fetch('http://localhost:3000/api/products', {
         method: 'POST',
         headers: {
@@ -97,20 +111,17 @@ function addProductHandler(e) {
         },
         body: JSON.stringify(newProduct),
       });
-    } else {
-      throw new Error('Failed to upload image');
-    }
-  })
-  .then((response) => response.json())
-  .then((data) => {
-    console.log('Added product:', data); // Check what data is returned
-    alert(`Product ${data.name} added!`);
-    loadAdminProducts();
-  })
-  .catch((error) => {
-    console.error('Error adding product:', error);
-    alert('There was an error adding the product.');
-  });
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('Added product:', data); // Check what data is returned
+      alert(`Product ${data.name} added!`);
+      loadAdminProducts();
+    })
+    .catch(error => {
+      console.error('Error adding product:', error);
+      alert('There was an error adding the product.');
+    });
 }
 
 // Function to load products for editing/removal
@@ -121,7 +132,7 @@ function loadAdminProducts() {
       const productList = document.getElementById('product-list');
       productList.innerHTML = products.map(product => `
         <div class="admin-product-item">
-          <img src="${product.image}" alt="${product.name}" class="admin-product-image" />
+          <img src="${product.images[0]}" alt="${product.name}" class="admin-product-image" />
           <div class="admin-product-details">
             <p class="admin-product-name">${product.name}</p>
             <p class="admin-product-price">£${product.price.toFixed(2)}</p>
@@ -142,10 +153,12 @@ function editProduct(productId) {
     .then(product => {
       document.getElementById('product-name').value = product.name;
       document.getElementById('product-price').value = product.price;
-      document.getElementById('product-rating').value = product.rating;
-      previewImage.src = product.image;
-      previewImage.style.display = 'block';
-      selectedFile = null; // Reset selected file
+      images = product.images.map(url => {
+        const img = new Image();
+        img.src = url;
+        return img;
+      });
+      updateImagePreview();
 
       // Update form submission to handle editing
       const form = document.getElementById('add-product-form');
@@ -162,8 +175,8 @@ function updateProduct(e, productId) {
   const updatedProduct = {
     name: document.getElementById('product-name').value,
     price: parseFloat(document.getElementById('product-price').value),
-    rating: parseFloat(document.getElementById('product-rating').value),
-    image: previewImage.src
+    rating: 0, // Set rating to 0 by default
+    images: images.map(image => image.src)
   };
 
   fetch(`http://localhost:3000/api/products/${productId}`, {

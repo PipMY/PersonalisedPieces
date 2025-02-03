@@ -12,14 +12,13 @@
     <form id="add-product-form">
       <input type="text" id="product-name" placeholder="Product Name" required />
       <input type="number" id="product-price" placeholder="Product Price" required />
-      <input type="number" step="0.1" id="product-rating" placeholder="Product Rating (1-5)" required />
 
       <!-- Drag and Drop Area -->
       <div id="image-drop-area" class="drop-area">
-        <p>Drag and drop an image here, or click to select a file.</p>
-        <input type="file" id="image-file-input" accept="image/*" style="display: none;" />
+        <p>Drag and drop images here, or click to select files.</p>
+        <input type="file" id="image-file-input" accept="image/*" multiple style="display: none;" />
       </div>
-      <img id="image-preview" src="" alt="Image Preview" style="display: none; max-width: 200px; margin-top: 10px;" />
+      <div id="image-preview-container" class="image-preview-container"></div>
 
       <button type="submit">Add Product</button>
     </form>

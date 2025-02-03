@@ -258,6 +258,18 @@ ul {
   background-color: #f0f8ff;
 }
 
+.image-preview-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.image-preview {
+  width: 100px;
+  height: auto;
+  border-radius: 10px;
+}
+
 #image-preview {
   display: block;
   margin-top: 10px;
@@ -487,12 +499,13 @@ ul {
   border-radius: 15px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  max-width: 600px;
+  size: 4rem;
+  max-width: 80%; /* Set max-width to 80% to fill a larger portion of the screen */
   margin: 0 auto;
 }
 
 .product-detail-image {
-  width: 100%;
+  width: 100%; /* Ensure the image fills the card width */
   height: auto;
   border-radius: 10px;
 }
@@ -503,9 +516,10 @@ ul {
 }
 
 .product-detail-title {
-  font-size: 24px;
+  font-size: 36px; /* Increase the font size */
   font-weight: bold;
   margin: 10px 0;
+  text-align: center; /* Center align the title */
 }
 
 .product-detail-price {
@@ -577,4 +591,26 @@ ul {
 #review-form button:hover {
   background-color: #45a049;
 }
+
+/* ...existing code... */
+
+.product-images {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+}
+
+.product-images img {
+  width: 100px;
+  height: auto;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.product-images img:hover {
+  transform: scale(1.1);
+}
+
+/* ...existing code... */
 

@@ -13,11 +13,13 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = 3000;
 
-// Middleware to parse JSON body in POST requests
-app.use(express.json());
+// Middleware to parse JSON body in POST requests with increased payload size limit
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 const swaggerOptions = {
@@ -187,9 +189,9 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   }
 
   const tempPath = req.file.path;
-  const targetPath = path.join(__dirname, 'assets/images', req.file.originalname);
+  const targetPath = path.join(__dirname, 'public/assets/images', req.file.originalname);
 
-  // Move the file to the assets/images directory
+  // Move the file to the public/assets/images directory
   fs.rename(tempPath, targetPath, (err) => {
     if (err) {
       console.error('Failed to save image:', err);
@@ -301,11 +303,11 @@ app.get('/api/products/:id', (req, res) => {
 
 // Validation function for new product
 function validateProduct(product) {
-  const { name, price, rating, image } = product;
+  const { name, price, rating, images } = product;
   if (!name || typeof name !== 'string') return 'Invalid product name';
   if (!price || typeof price !== 'number' || price <= 0) return 'Invalid product price';
   if (!rating || typeof rating !== 'number' || rating < 0 || rating > 5) return 'Invalid product rating';
-  if (!image || typeof image !== 'string') return 'Invalid product image';
+  if (!images || !Array.isArray(images) || images.some(img => typeof img !== 'string')) return 'Invalid product images';
   return null;
 }
 
@@ -327,7 +329,7 @@ app.post('/api/products', (req, res) => {
 
       // Generate a new ID for the new product
       const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 1;
-      const addedProduct = { id: newId, ...newProduct };
+      const addedProduct = { id: newId, ...newProduct, images: newProduct.images || [] };
 
       // Add the new product to the list
       products.push(addedProduct);
@@ -362,7 +364,7 @@ app.put('/api/products/:id', (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
 
-    products[productIndex] = { id: productId, ...updatedProduct };
+    products[productIndex] = { id: productId, ...updatedProduct, images: updatedProduct.images || [] };
 
     fs.writeFile(productsFilePath, JSON.stringify(products, null, 2), (err) => {
       if (err) {
@@ -680,7 +682,7 @@ app.get('/api/products/:id/reviews', (req, res) => {
   if (productReviews) {
     res.json(productReviews.reviews);
   } else {
-    res.status(404).json({ error: 'Reviews not found' });
+    res.json([]); // Return an empty array if no reviews are found
   }
 });
 

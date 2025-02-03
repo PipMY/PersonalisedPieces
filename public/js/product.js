@@ -12,9 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
           .then(reviews => {
             const averageRating = calculateAverageRating(reviews);
             const reviewCount = reviews.length;
+            const imagesHtml = product.images && product.images.length > 0 ? product.images.map(image => `<img src="${image}" alt="${product.name}" class="product-image" />`).join('') : '';
             productDetailsContainer.innerHTML = `
-              <div class="product-card">
-                <img src="${product.image}" alt="${product.name}" class="product-image" />
+              <div class="product-detail-card">
+                <div class="product-images">
+                  ${imagesHtml}
+                </div>
                 <div class="product-info">
                   <h4 class="brand">Brand Name</h4>
                   <h3 class="product-title">${product.name}</h3>
@@ -28,7 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
                   </button>
                 </div>
               </div>
+              <div class="reviews-section">
+                <h3>Reviews</h3>
+                <div id="reviews-container"></div>
+                <form id="review-form">
+                  <input type="text" id="reviewer-name" placeholder="Your Name" required />
+                  <textarea id="review-text" placeholder="Your Review" required></textarea>
+                  <input type="number" id="review-rating" placeholder="Rating (1-5)" min="1" max="5" required />
+                  <button type="submit">Submit Review</button>
+                </form>
+              </div>
             `;
+            loadReviews(productId);
+            document.getElementById('review-form').addEventListener('submit', (e) => submitReview(e, productId));
           })
           .catch(error => {
             console.error('Error fetching reviews:', error);
@@ -47,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function generateStars(rating) {
   const fullStarURL = "../assets/images/star-fill.svg";
   const halfStarURL = "../assets/images/star-half.svg";
-  const emptyStarURL = "../.assets/images/star.svg";
+  const emptyStarURL = "../assets/images/star.svg";
 
   const fullStars = Math.floor(rating);
   const halfStar = rating % 1 >= 0.5;
@@ -92,4 +107,64 @@ function updateCart() {
 function calculateAverageRating(reviews) {
   const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
   return totalRating / reviews.length;
+}
+
+function loadReviews(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+    .then(response => response.json())
+    .then(reviews => {
+      const reviewsContainer = document.getElementById('reviews-container');
+      reviewsContainer.innerHTML = reviews.map(review => `
+        <div class="review">
+          <h4>${review.reviewer}</h4>
+          <div class="rating">${generateStars(review.rating)} ${review.rating.toFixed(1)}</div>
+          <p>${review.text}</p>
+        </div>
+      `).join('');
+    })
+    .catch(error => {
+      console.error('Error loading reviews:', error);
+      document.getElementById('reviews-container').innerHTML = 'Failed to load reviews.';
+    });
+}
+
+function submitReview(e, productId) {
+  e.preventDefault();
+  const reviewer = document.getElementById('reviewer-name').value;
+  const text = document.getElementById('review-text').value;
+  const rating = parseFloat(document.getElementById('review-rating').value);
+
+  const review = { reviewer, text, rating };
+
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(review)
+  })
+    .then(response => response.json())
+    .then(data => {
+      alert('Review submitted!');
+      loadReviews(productId);
+      document.getElementById('review-form').reset();
+      updateProductRating(productId);
+    })
+    .catch(error => {
+      console.error('Error submitting review:', error);
+      alert('Failed to submit review.');
+    });
+}
+
+function updateProductRating(productId) {
+  fetch(`http://localhost:3000/api/products/${productId}/reviews`)
+    .then(response => response.json())
+    .then(reviews => {
+      const averageRating = calculateAverageRating(reviews);
+      const ratingElement = document.querySelector('.product-detail-info .rating');
+      ratingElement.innerHTML = `${generateStars(averageRating)} ${averageRating.toFixed(1)}`;
+    })
+    .catch(error => {
+      console.error('Error updating product rating:', error);
+    });
 }

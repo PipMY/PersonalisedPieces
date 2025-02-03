@@ -3,14 +3,30 @@
     "id": 1,
     "name": "Kunai",
     "price": 8,
-    "rating": 4.5,
-    "image": "http://localhost:3000/assets/images/kunai.jpg"
+    "rating": 4.2,
+    "images": [
+      "http://localhost:3000/assets/images/kunai1.jpg",
+      "http://localhost:3000/assets/images/kunai2.jpg"
+    ]
   },
   {
     "id": 2,
     "name": "Shuriken",
     "price": 4,
     "rating": 1.5,
-    "image": "http://localhost:3000/assets/images/shuriken.jpg"
+    "images": [
+      "http://localhost:3000/assets/images/shuriken1.jpg",
+      "http://localhost:3000/assets/images/shuriken2.jpg"
+    ]
+  },
+  {
+    "id": 3,
+    "name": "Keychain",
+    "price": 15,
+    "rating": 1,
+    "images": [
+      "/assets/images/image0.jpg",
+      "/assets/images/image1.jpg"
+    ]
   }
 ]

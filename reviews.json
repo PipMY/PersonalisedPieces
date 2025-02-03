@@ -21,6 +21,12 @@
         "reviewer": "Harry Potter",
         "text": "It's nice",
         "rating": 5
+      },
+      {
+        "reviewer": "Tilda",
+        "text": "Great quality, pierced my housemate's skull perfectly",
+        "rating": 5,
+        "productId": 1
       }
     ]
   },
