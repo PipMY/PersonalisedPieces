@@ -380,6 +380,9 @@ function loadReviews(productId) {
   fetch(`http://localhost:3000/api/products/${productId}/reviews`)
     .then(response => response.json())
     .then(reviews => {
+      if (!Array.isArray(reviews)) {
+        reviews = [];
+      }
       const reviewsContainer = document.getElementById('reviews-container');
       reviewsContainer.innerHTML = reviews.map(review => `
         <div class="review">
@@ -637,8 +640,13 @@ window.addEventListener('popstate', async () => {
     }
   }
 
-  routes[initialRoute]();
-  setActiveLink(initialRoute);
+  if (routes[initialRoute]) {
+    routes[initialRoute]();
+    setActiveLink(initialRoute);
+  } else {
+    console.error(`Route ${initialRoute} not found`);
+    navigate('home');
+  }
 
   if (initialRoute === "cart") {
     loadCart();
