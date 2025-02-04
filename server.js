@@ -8,8 +8,6 @@ const swaggerUi = require('swagger-ui-express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 
-
-
 const app = express();
 const port = 3000;
 
@@ -37,7 +35,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ["server.js"], // Point this to your main backend file
+  apis: ["server.js"],
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
@@ -130,56 +128,6 @@ const upload = multer({
   }
 });
 
-/**
- * @swagger
- * /api/upload:
- *   post:
- *     summary: Upload an image
- *     description: Allows users to upload an image, which is then stored on the server.
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               image:
- *                 type: string
- *                 format: binary
- *                 description: The image file to upload
- *     responses:
- *       200:
- *         description: Successfully uploaded the image.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 filePath:
- *                   type: string
- *                   example: "/assets/images/example.jpg"
- *       400:
- *         description: No file uploaded.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "No file uploaded"
- *       500:
- *         description: Server error while saving the image.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Failed to save image"
- */
-
 
 // Allows for the image to be uploaded and saved to the server
 app.post('/api/upload', upload.single('image'), (req, res) => {
@@ -203,93 +151,6 @@ app.post('/api/upload', upload.single('image'), (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /api/products:
- *   get:
- *     summary: Retrieve all products
- *     description: Fetch all available products from the store.
- *     responses:
- *       200:
- *         description: A list of products.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   id:
- *                     type: integer
- *                     example: 1
- *                   name:
- *                     type: string
- *                     example: "Product Name"
- *                   price:
- *                     type: number
- *                     example: 9.99
- *                   rating:
- *                     type: number
- *                     example: 4.5
- */
-app.get('/api/products', (req, res) => {
-  res.json(products);
-});
-
-/**
- * @swagger
- * /api/products/{id}:
- *   get:
- *     summary: Retrieve a single product by ID
- *     description: Fetch a product's details by its unique ID. Returns 404 if the product is not found.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The unique ID of the product
- *     responses:
- *       200:
- *         description: Product details retrieved successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   example: 1
- *                 name:
- *                   type: string
- *                   example: "Product Name"
- *                 price:
- *                   type: number
- *                   example: 9.99
- *                 rating:
- *                   type: number
- *                   example: 4.5
- *       404:
- *         description: Product not found.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Product not found"
- *       500:
- *         description: Error reading product data.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Failed to read products data"
- */
 
 // Get endpoint for a single product (for when you are adding to the basket) returns 404 if it cannot be found
 app.get('/api/products/:id', (req, res) => {
@@ -374,7 +235,177 @@ app.put('/api/products/:id', (req, res) => {
     });
   });
 });
+// Endpoint to delete a product
 
+app.delete('/api/products/:id', (req, res) => {
+  const productId = parseInt(req.params.id, 10);
+
+  const productsFilePath = path.join(__dirname, 'products.json');
+  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
+    if (err) {
+      return res.status(500).json({ error: 'Failed to read products data' });
+    }
+
+    let products = JSON.parse(data);
+    products = products.filter(p => p.id !== productId);
+
+    fs.writeFile(productsFilePath, JSON.stringify(products, null, 2), (err) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to delete product' });
+      }
+      res.json({ message: 'Product deleted' });
+    });
+  });
+});
+
+// Endpoint to get reviews for a product
+app.get('/api/products/:id/reviews', (req, res) => {
+  const productId = parseInt(req.params.id);
+  const productReviews = reviews.find(review => review.productId === productId);
+  if (productReviews) {
+    res.json(productReviews.reviews);
+  } else {
+    res.json([]); // Return an empty array if no reviews are found
+  }
+});
+
+// Endpoint to get all reviews
+app.get('/api/reviews', (req, res) => {
+  res.json(reviews);
+});
+
+// Endpoint to add a review to a product
+app.post('/api/products/:id/reviews', (req, res) => {
+  const productId = parseInt(req.params.id);
+  const product = products.find(p => p.id === productId);
+  if (product) {
+    const review = { ...req.body, productId: product.id };
+    const productReviews = reviews.find(r => r.productId === productId);
+    if (productReviews) {
+      productReviews.reviews.push(review);
+    } else {
+      reviews.push({ productId: product.id, reviews: [review] });
+    }
+    fs.writeFileSync('reviews.json', JSON.stringify(reviews, null, 2));
+
+    // Update product rating based on the average of all reviews
+    const updatedReviews = reviews.find(r => r.productId === productId).reviews;
+    const averageRating = calculateAverageRating(updatedReviews);
+    product.rating = averageRating;
+    fs.writeFileSync('products.json', JSON.stringify(products, null, 2));
+
+    res.status(201).json(review);
+  } else {
+    res.status(404).send('Product not found');
+  }
+});
+
+function calculateAverageRating(reviews) {
+  if (reviews.length === 0) return 0;
+  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+  return totalRating / reviews.length;
+}
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews:
+ *   get:
+ *     summary: Get reviews for a product
+ *     description: Retrieves all reviews for a specific product by its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the product whose reviews are to be retrieved.
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved reviews.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   rating:
+ *                     type: integer
+ *                     example: 5
+ *                   comment:
+ *                     type: string
+ *                     example: "Great product!"
+ *       404:
+ *         description: Reviews not found for the given product ID.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Reviews not found"
+ */
+
+/**
+ * @swagger
+ * /api/products/{id}/reviews:
+ *   post:
+ *     summary: Add a review to a product
+ *     description: Allows users to add a review for a specific product.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the product to review.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 example: 5
+ *               comment:
+ *                 type: string
+ *                 example: "Amazing quality!"
+ *     responses:
+ *       201:
+ *         description: Review successfully added.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 productId:
+ *                   type: integer
+ *                   example: 1
+ *                 rating:
+ *                   type: integer
+ *                   example: 5
+ *                 comment:
+ *                   type: string
+ *                   example: "Amazing quality!"
+ *       404:
+ *         description: Product not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Product not found"
+ */
 /**
  * @swagger
  * /api/products:
@@ -556,115 +587,36 @@ app.put('/api/products/:id', (req, res) => {
  *                   example: "Failed to delete product"
  */
 
-// Endpoint to delete a product
-
-app.delete('/api/products/:id', (req, res) => {
-  const productId = parseInt(req.params.id, 10);
-
-  const productsFilePath = path.join(__dirname, 'products.json');
-  fs.readFile(productsFilePath, 'utf-8', (err, data) => {
-    if (err) {
-      return res.status(500).json({ error: 'Failed to read products data' });
-    }
-
-    let products = JSON.parse(data);
-    products = products.filter(p => p.id !== productId);
-
-    fs.writeFile(productsFilePath, JSON.stringify(products, null, 2), (err) => {
-      if (err) {
-        return res.status(500).json({ error: 'Failed to delete product' });
-      }
-      res.json({ message: 'Product deleted' });
-    });
-  });
-});
-
 /**
  * @swagger
- * /api/products/{id}/reviews:
- *   get:
- *     summary: Get reviews for a product
- *     description: Retrieves all reviews for a specific product by its ID.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the product whose reviews are to be retrieved.
- *     responses:
- *       200:
- *         description: Successfully retrieved reviews.
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   rating:
- *                     type: integer
- *                     example: 5
- *                   comment:
- *                     type: string
- *                     example: "Great product!"
- *       404:
- *         description: Reviews not found for the given product ID.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Reviews not found"
- */
-
-/**
- * @swagger
- * /api/products/{id}/reviews:
+ * /api/upload:
  *   post:
- *     summary: Add a review to a product
- *     description: Allows users to add a review for a specific product.
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         description: The ID of the product to review.
+ *     summary: Upload an image
+ *     description: Allows users to upload an image, which is then stored on the server.
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
- *               rating:
- *                 type: integer
- *                 example: 5
- *               comment:
+ *               image:
  *                 type: string
- *                 example: "Amazing quality!"
+ *                 format: binary
+ *                 description: The image file to upload
  *     responses:
- *       201:
- *         description: Review successfully added.
+ *       200:
+ *         description: Successfully uploaded the image.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 productId:
- *                   type: integer
- *                   example: 1
- *                 rating:
- *                   type: integer
- *                   example: 5
- *                 comment:
+ *                 filePath:
  *                   type: string
- *                   example: "Amazing quality!"
- *       404:
- *         description: Product not found.
+ *                   example: "/assets/images/example.jpg"
+ *       400:
+ *         description: No file uploaded.
  *         content:
  *           application/json:
  *             schema:
@@ -672,58 +624,15 @@ app.delete('/api/products/:id', (req, res) => {
  *               properties:
  *                 error:
  *                   type: string
- *                   example: "Product not found"
+ *                   example: "No file uploaded"
+ *       500:
+ *         description: Server error while saving the image.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Failed to save image"
  */
-
-// Endpoint to get reviews for a product
-app.get('/api/products/:id/reviews', (req, res) => {
-  const productId = parseInt(req.params.id);
-  const productReviews = reviews.find(review => review.productId === productId);
-  if (productReviews) {
-    res.json(productReviews.reviews);
-  } else {
-    res.json([]); // Return an empty array if no reviews are found
-  }
-});
-
-// Endpoint to get all reviews
-app.get('/api/reviews', (req, res) => {
-  res.json(reviews);
-});
-
-// Endpoint to add a review to a product
-app.post('/api/products/:id/reviews', (req, res) => {
-  const productId = parseInt(req.params.id);
-  const product = products.find(p => p.id === productId);
-  if (product) {
-    const review = { ...req.body, productId: product.id };
-    const productReviews = reviews.find(r => r.productId === productId);
-    if (productReviews) {
-      productReviews.reviews.push(review);
-    } else {
-      reviews.push({ productId: product.id, reviews: [review] });
-    }
-    fs.writeFileSync('reviews.json', JSON.stringify(reviews, null, 2));
-
-    // Update product rating based on the average of all reviews
-    const updatedReviews = reviews.find(r => r.productId === productId).reviews;
-    const averageRating = calculateAverageRating(updatedReviews);
-    product.rating = averageRating;
-    fs.writeFileSync('products.json', JSON.stringify(products, null, 2));
-
-    res.status(201).json(review);
-  } else {
-    res.status(404).send('Product not found');
-  }
-});
-
-function calculateAverageRating(reviews) {
-  if (reviews.length === 0) return 0;
-  const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-  return totalRating / reviews.length;
-}
-
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`);
-});
